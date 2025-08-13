@@ -32,32 +32,29 @@ export class LoadingScene extends Phaser.Scene {
     progressBox.fillRect(boxX, boxY, boxWidth, boxHeight);
 
     this.load.image("grass", "/assets/images/world/grass.png");
-    this.load.image("house1", "/assets/images/world/house04.png");
-    this.load.image("house2", "/assets/images/world/house02.png");
-    this.load.image("house3", "/assets/images/world/house03.png");
-    this.load.image("tree1", "/assets/images/world/tree02.png");
-    this.load.image("tree2", "/assets/images/world/tree04.png");
+    this.load.image("house01", "/assets/images/world/house01.png");
+    this.load.image("house02", "/assets/images/world/house02.png");
+    this.load.image("house03", "/assets/images/world/house03.png");
+    this.load.image("house04" , "/assets/images/world/house04.png");
+    this.load.image("tree01", "/assets/images/world/tree02.png");
+    this.load.image("tree02", "/assets/images/world/tree03.png");
     this.load.image("flower01", "/assets/images/world/flowers01.png");
     this.load.image("flower02", "/assets/images/world/flowers02.png");
     this.load.image("path", "/assets/images/world/path.png");
+    this.load.image("background", "assets/images/world/background.png");
+    this.load.image("windmill", "assets/images/world/windmill.png");
+    this.load.image("farmhouse", "assets/images/world/farmhouse.png");
 
-    this.load.spritesheet(
-      "player",
-      "/assets/images/world/mc.png",
-      {
-        frameWidth: 32,
-        frameHeight: 32,
-      }
-    );
 
-    this.load.spritesheet(
-      "villager1",
-      "/assets/images/world/villager01.png",
-      {
-        frameWidth: 32,
-        frameHeight: 32,
-      }
-    );
+    this.load.spritesheet("player", "/assets/images/characters/mc.png", {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
+
+    this.load.spritesheet("villager1", "/assets/images/characters/villager01.png", {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
 
     this.load.on("progress", (value) => {
       progressBar.clear();
