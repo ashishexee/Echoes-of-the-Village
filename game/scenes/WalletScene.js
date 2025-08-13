@@ -5,59 +5,61 @@ export class WalletScene extends Phaser.Scene {
     }
 
     preload() {
-        // this.load.image('connect_btn', '/assets/images/ui/connect_btn.png');
+         this.load.image('connect_btn', '/assets/images/ui/connect_btn.png');
         // this.load.image('logo', '/assets/images/ui/logo.png');
     }
 
-    create() {
-        const centerX = this.cameras.main.width / 2;
-        const centerY = this.cameras.main.height / 2;
+   create() {
+    const centerX = this.cameras.main.width / 2;
+    const centerY = this.cameras.main.height / 2;
 
-        // Add logo
-        // this.add.image(centerX, centerY - 130, 'logo').setScale(0.8);
+    // Create blue rectangle as button
+    const connectBtn = this.add.rectangle(centerX, centerY + 70, 200, 50, 0x0000ff) // blue fill
+        .setInteractive({ useHandCursor: true });
 
-        // // Add wallet connection button
-        // const connectBtn = this.add.image(centerX, centerY + 70, 'connect_btn')
-        //     .setInteractive({ useHandCursor: true })
-        //     .setScale(0.7);
+    // Add text over the button
+    const btnText = this.add.text(centerX, centerY + 70, 'Connect Wallet', {
+        fontFamily: 'Arial',
+        fontSize: '20px',
+        color: '#ffffff',
+        fontStyle: 'bold'
+    }).setOrigin(0.5);
 
-        // Add text
-        this.add.text(centerX, centerY - 20, 'Connect your MetaMask wallet to start', {
-            fontFamily: 'Arial',
-            fontSize: 22,
-            color: '#ffffff'
-        }).setOrigin(0.5);
+    // Button click
+    connectBtn.on('pointerdown', () => {
+        this.connectWallet();
+    });
 
-        // Connect wallet when button is clicked
-        // connectBtn.on('pointerdown', () => {
-        //     this.connectWallet();
-        // });
+    // Instruction text
+    this.add.text(centerX, centerY - 20, 'Connect your MetaMask wallet to start', {
+        fontFamily: 'Arial',
+        fontSize: 22,
+        color: '#ffffff'
+    }).setOrigin(0.5);
 
-        // Temporary: Skip wallet connection for development
-        const skipText = this.add.text(centerX, centerY + 200, '[DEV] Skip wallet connection', {
-            fontFamily: 'Arial',
-            fontSize: 16,
-            color: '#aaaaaa'
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    // Skip option for development
+    const skipText = this.add.text(centerX, centerY + 200, '[DEV] Skip wallet connection', {
+        fontFamily: 'Arial',
+        fontSize: 16,
+        color: '#aaaaaa'
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        skipText.on('pointerdown', () => {
-            this.scene.start('MenuScene');
-        });
-    }
+    skipText.on('pointerdown', () => {
+        this.scene.start('MenuScene');
+    });
+}
 
-    async connectWallet() {
+
+   async connectWallet() {
         try {
-            // For now, just pretend to connect and proceed
-            // You'll implement actual MetaMask connection here
-
-            console.log('Connecting to wallet...');
-
-            // Simulate connection delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            console.log('Wallet connected!');
-            this.scene.start('MenuScene');
-
+            if (window.ethereum) {
+                // Request account access if needed
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                console.log('Connected account:', accounts[0]);
+                this.scene.start('MenuScene');
+            } else {
+                throw new Error('MetaMask not found. Please install MetaMask.');
+            }
         } catch (error) {
             console.error('Failed to connect wallet:', error);
             const centerX = this.cameras.main.width / 2;
