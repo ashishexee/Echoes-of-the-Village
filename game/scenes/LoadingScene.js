@@ -1,0 +1,87 @@
+import Phaser from "phaser";
+export class LoadingScene extends Phaser.Scene {
+  constructor() {
+    super({ key: "LoadingScene" });
+  }
+
+  preload() {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    // Load background image
+    this.load.image("loading_bg", "/assets/images/world/background.png");
+
+    this.add
+      .text(width / 2, height / 2 - 60, "Loading...", {
+        fontSize: "32px",
+        fill: "#ffffff",
+      })
+      .setOrigin(0.5);
+
+    this.load.image("background", "assets/images/world/background.png");
+
+    const progressBar = this.add.graphics();
+    const progressBox = this.add.graphics();
+
+    const boxWidth = 320;
+    const boxHeight = 50;
+    const boxX = (width - boxWidth) / 2;
+    const boxY = height / 2 - boxHeight / 2;
+
+    progressBox.fillStyle(0x222222, 0.8);
+    progressBox.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+    this.load.image("grass", "/assets/images/world/grass.png");
+    this.load.image("house1", "/assets/images/world/house04.png");
+    this.load.image("house2", "/assets/images/world/house02.png");
+    this.load.image("house3", "/assets/images/world/house03.png");
+    this.load.image("tree1", "/assets/images/world/tree02.png");
+    this.load.image("tree2", "/assets/images/world/tree04.png");
+    this.load.image("flower01", "/assets/images/world/flowers01.png");
+    this.load.image("flower02", "/assets/images/world/flowers02.png");
+    this.load.image("path", "/assets/images/world/path.png");
+
+    this.load.spritesheet(
+      "player",
+      "/assets/images/world/mc.png",
+      {
+        frameWidth: 32,
+        frameHeight: 32,
+      }
+    );
+
+    this.load.spritesheet(
+      "villager1",
+      "/assets/images/world/villager01.png",
+      {
+        frameWidth: 32,
+        frameHeight: 32,
+      }
+    );
+
+    this.load.on("progress", (value) => {
+      progressBar.clear();
+      progressBar.fillStyle(0xffffff, 1);
+      progressBar.fillRect(
+        boxX + 10,
+        boxY + 10,
+        (boxWidth - 20) * value,
+        boxHeight - 20
+      );
+    });
+
+    this.load.on("complete", () => {
+      progressBar.destroy();
+      progressBox.destroy();
+    });
+  }
+
+  create() {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    this.add
+      .image(width / 2, height / 2, "loading_bg")
+      .setDisplaySize(width, height);
+    this.scene.start("HomeScene");
+  }
+}
