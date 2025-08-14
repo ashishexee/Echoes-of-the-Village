@@ -40,16 +40,14 @@ export class LoadingScene extends Phaser.Scene {
     this.load.image("tree02", "/assets/images/world/tree03.png");
     this.load.image("flower01", "/assets/images/world/flowers01.png");
     this.load.image("flower02", "/assets/images/world/flowers02.png");
-    this.load.image("path", "/assets/images/world/path.png");
+    this.load.image("path", "/assets/images/world/solid_path.png");
     this.load.image("background", "assets/images/world/background.png");
     this.load.image("windmill", "assets/images/world/windmill.png");
     this.load.image("farmhouse", "assets/images/world/farmhouse.png");
+    this.load.image("track_background" , "/assets/images/world/track_background.png");
 
 
-    this.load.spritesheet("player", "/assets/images/characters/mc.png", {
-      frameWidth: 32,
-      frameHeight: 32,
-    });
+    this.load.image("player", "/assets/images/characters/mc.png");
 
     this.load.spritesheet("villager1", "/assets/images/characters/villager01.png", {
       frameWidth: 32,
