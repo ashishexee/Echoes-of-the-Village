@@ -4,28 +4,28 @@ export class HomeScene extends Phaser.Scene {
     super({ key: "HomeScene" });
     this.player = null;
     this.cursors = null;
-    this.isWalkablePixel = null;
+    this.wasd = null;
+    this.walkableGrid = [];
+    this.tileSize = 32;
   }
 
   create() {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
+    const tilesX = Math.ceil(width / this.tileSize);
+    const tilesY = Math.floor(height / this.tileSize);
 
-    const tileSize = 32;
-    const tilesX = Math.ceil(width / tileSize);
-    const tilesY = Math.floor(height / tileSize);
-
-    // Create background tiles
-    for (let x = 0; x < tilesX; x++) {
-      for (let y = 0; y < tilesY; y++) {
+    for (let y = 0; y < tilesY; y++) {
+      this.walkableGrid[y] = [];
+      for (let x = 0; x < tilesX; x++) {
+        this.walkableGrid[y][x] = false;
         this.add
-          .image(x * tileSize, y * tileSize, "background")
+          .image(x * this.tileSize, y * this.tileSize, "background")
           .setOrigin(0)
-          .setDisplaySize(tileSize, tileSize);
+          .setDisplaySize(this.tileSize + 32, this.tileSize +32);
       }
     }
 
-    // Create path tiles for visual reference
     const pathTiles = [
       { x: 1, y: 9, width: 1, height: 3 },
       { x: 10, y: 12, width: 1, height: 9 },
@@ -51,25 +51,33 @@ export class HomeScene extends Phaser.Scene {
     pathTiles.forEach((path) => {
       for (let x = path.x; x < path.x + path.width; x++) {
         for (let y = path.y; y < path.y + path.height; y++) {
-          this.add
-            .image(x * tileSize, y * tileSize, "path")
-            .setOrigin(0)
-            .setScale(0.1);
+          if (this.walkableGrid[y] && this.walkableGrid[y][x] !== undefined) {
+            this.add
+              .image(x * this.tileSize, y * this.tileSize, "path")
+              .setOrigin(0)
+              .setDisplaySize(this.tileSize, this.tileSize);
+            this.walkableGrid[y][x] = true;
+          }
         }
       }
     });
 
-    // Original buildings
-    this.createBuilding(-0.5, -0.5, "house01");
-    this.createBuilding(0.23, 18, "house03");
-    this.createBuilding(5.56, 17.38, "house01");
-    this.createBuilding(0.455, 13, "house02");
+    this.createBuilding(0, 0.5, "house01", 4, 4);
+    this.createBuilding(0, 16, "house01", 5, 5);
+    this.createBuilding(5, 16, "house01", 5, 5);
+    this.createBuilding(0.5, 12, "house02", 4, 4);
+    this.createBuilding(14, 0, "house01", 4, 4);
+    this.createBuilding(25.6, 1.5, "church01", 4, 4);
+    this.createBuilding(17.4, 10, "house02", 4, 4);
+    this.createBuilding(32, 2, "house02", 4, 4);
+    this.createBuilding(11.5, 14.7, "house02", 4, 4);
+    this.createBuilding(11, 6, "house02", 4, 4);
+    this.createBuilding(30, 10, "house02", 4, 4);
 
-    // Original obstacles
-    this.createObstacle(2, 10, "flower01", 3, 2);
-    this.createObstacle(25, 5, "flower02", 4, 3);
-    this.createObstacle(28, 18, "flower03", 3, 2);
-
+    // Obstacles
+    // this.createObstacle(2, 10, "flower01", 3, 2);
+    // this.createObstacle(25, 5, "flower02", 4, 3);
+    // this.createObstacle(28, 18, "flower03", 3, 2);
     this.createObstacle(6, 4, "tree01");
     this.createObstacle(6.4, 4, "tree01");
     this.createObstacle(6.8, 4, "tree01");
@@ -78,209 +86,126 @@ export class HomeScene extends Phaser.Scene {
     this.createObstacle(7.6, 4, "tree01");
     this.createObstacle(8, 4, "tree01");
     this.createObstacle(10, 7, "tree02");
-
-    this.createBuilding(14, 0, "house01");
-    this.createBuilding(25, 1, "house01");
-
-    this.createBuilding(17, 10, "house02");
-    this.createBuilding(32, 2, "house02");
-
-    this.createLake(2, 3.5, "lake01");
-    this.createLake(24, 12, "lake01");
-    this.createLake(17, 0, "lake01");
-    this.createLake(37, 14, "lake01");
-
-    this.createBuilding(10.7, 13, "house02");
-    this.createBuilding(11, 6, "house02");
-    this.createBuilding(29, 10, "house02");
-
     this.createObstacle(8, 4, "tree03");
     this.createObstacle(15, 6, "tree01");
     this.createObstacle(25, 3, "tree02");
     this.createObstacle(32, 14, "tree03");
     this.createObstacle(39, 12, "tree01");
-
     this.createObstacle(11, 3, "flower02", 2, 1);
     this.createObstacle(19, 4, "flower01", 1, 2);
     this.createObstacle(26, 16, "flower03", 2, 2);
     this.createObstacle(33, 6, "flower02", 1, 1);
     this.createObstacle(41, 2, "flower01", 2, 1);
 
-    this.createVillager(8, 10);
-    this.createVillager(16, 8);
-    this.createVillager(12, 16);
-    this.createVillager(20, 20);
+    // Lakes
+    // this.createLake(2, 3, "lake01", 10, 10);
+    // this.createLake(24, 12, "lake01", 10, 10);
+    // this.createLake(17, 0, "lake01", 10, 10);
+    // this.createLake(37, 14, "lake01", 10, 10);
 
-    this.createVillager(6, 3);
-    this.createVillager(25, 10);
-    this.createVillager(35, 6);
-    this.createVillager(15, 14);
+    // Villagers
+    this.createVillager(8, 10 , "villager01" , 0.1);
+    this.createVillager(16, 8 , "villager02" , 0.069);
+    this.createVillager(12, 16 , "villager03", 0.069);
+    this.createVillager(20, 20 , "villager04" , 0.069);
+    this.createVillager(6, 3 , "villager01" , 0.1);
+    this.createVillager(25, 10 , "villager02" ,0.069);
+    this.createVillager(35, 6 , "villager03" ,0.089 );
+    this.createVillager(15, 14 ,"vilager04" , 0.069);
 
-    this.createPlayer();
-
-    this.setupCanvasPixelCollision();
+    this.createPlayer(1, 9);
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys("W,S,A,D");
   }
 
-  setupCanvasPixelCollision() {
-
-    const canvas = this.game.canvas;
-    const ctx = canvas.getContext('2d');
-
-    if(!ctx){
-      console.warn('Pixel collsion detection failed');
-      this.isWalkablePixel = () => true;
-      return;
+  isWalkableAt(worldX, worldY) {
+    const tileX = Math.floor(worldX / this.tileSize);
+    const tileY = Math.floor(worldY / this.tileSize);
+    if (this.walkableGrid[tileY] && this.walkableGrid[tileY][tileX]) {
+      return true;
     }
-
-    this.isWalkablePixel = (worldX, worldY) => {
-      try {
-        const camera = this.cameras.main;
-        const screenX = Math.floor((worldX - camera.scrollX) * camera.zoom);
-        const screenY = Math.floor((worldY - camera.scrollY) * camera.zoom);
-
-        if (screenX < 0 || screenY < 0 || screenX >= canvas.width || screenY >= canvas.height) {
-          return false;
-        }
-
-        // Get pixel data from the rendered canvas
-        const pixelData = ctx.getImageData(screenX, screenY, 1, 1).data;
-        const r = pixelData[0];
-        const g = pixelData[1];
-        const b = pixelData[2];
-
-        if (this.player && Math.abs(worldX - this.player.x) < 2 && Math.abs(worldY - this.player.y) < 2) {
-          console.log(`Canvas pixel RGB at (${screenX}, ${screenY}): (${r}, ${g}, ${b})`);
-        }
-
-        const isPathColor = this.isPathPixel(r, g, b);
-        
-        return isPathColor;
-      } catch (error) {
-        console.warn('Canvas pixel check failed:', error);
-        return false;
-      }
-    };
+    return false;
   }
 
-  isPathPixel(r, g, b) {
-    const pathColor1 = { r: 218, g: 165, b: 32 }; // Golden rod (example)
-    const pathColor2 = { r: 255, g: 218, b: 185 }; // Peach puff (example)
-    
-    const tolerance = 30; // Color tolerance
-    
-    const matchesPath1 = Math.abs(r - pathColor1.r) < tolerance && 
-                        Math.abs(g - pathColor1.g) < tolerance && 
-                        Math.abs(b - pathColor1.b) < tolerance;
-                        
-    const matchesPath2 = Math.abs(r - pathColor2.r) < tolerance && 
-                        Math.abs(g - pathColor2.g) < tolerance && 
-                        Math.abs(b - pathColor2.b) < tolerance;
-
-    // Option 2: Check for non-green colors (since background is green)
-    const isNotGreen = !(r < 100 && g > 140 && b < 50);
-    
-    return matchesPath1 || matchesPath2 || isNotGreen;
-  }
-
-  createBuilding(x, y, texture) {
-    const building = this.add.image(x * 32, y * 32, texture).setOrigin(0);
-    building.setScale(0.34, 0.34);
-  }
-
-  createObstacle(x, y, texture, width = 1, height = 1) {
-    this.add
-      .image(x * 32, y * 32, texture)
+  createBuilding(tileX, tileY, texture, tileWidth = 4, tileHeight = 4) {
+    const pixelX = tileX * this.tileSize;
+    const pixelY = tileY * this.tileSize;
+    this.add.image(pixelX, pixelY, texture)
       .setOrigin(0)
-      .setDisplaySize(32, 32);
-  }
-
-  // New method for creating lakes (slightly larger than regular obstacles)
-  createLake(x, y, texture) {
-    this.add
-      .image(x * 32, y * 32, texture)
-      .setOrigin(0)
-      .setDisplaySize(320, 320); // Slightly larger than regular obstacles
-  }
-
-  // New method for creating fields (can span multiple tiles)
-  createField(x, y, texture, width = 1, height = 1) {
-    for (let i = 0; i < width; i++) {
-      for (let j = 0; j < height; j++) {
-        this.add
-          .image((x + i) * 32, (y + j) * 32, texture)
-          .setOrigin(0)
-          .setDisplaySize(32, 32);
+      .setDisplaySize(tileWidth * this.tileSize, tileHeight * this.tileSize);
+    for (let y = Math.floor(tileY); y < Math.floor(tileY + tileHeight); y++) {
+      for (let x = Math.floor(tileX); x < Math.floor(tileX + tileWidth); x++) {
+        if (this.walkableGrid[y]) {
+          this.walkableGrid[y][x] = false;
+        }
       }
     }
   }
 
-  createVillager(x, y) {
-    const villager = this.add
-      .sprite(x * 32 + 16, y * 32 + 16, "villager1")
-      .setOrigin(0.5);
-
-    this.time.addEvent({
-      delay: 2000 + Math.random() * 3000,
-      callback: () => {
-        const directions = ["up", "down", "left", "right"];
-        const randomDir =
-          directions[Math.floor(Math.random() * directions.length)];
-      },
-      loop: true,
-    });
+  createObstacle(tileX, tileY, texture, tileWidth = 1, tileHeight = 1) {
+    this.add
+      .image(tileX * this.tileSize, tileY * this.tileSize, texture)
+      .setOrigin(0)
+      .setDisplaySize(tileWidth * this.tileSize, tileHeight * this.tileSize);
+    for (let y = Math.floor(tileY); y < Math.floor(tileY + tileHeight); y++) {
+      for (let x = Math.floor(tileX); x < Math.floor(tileX + tileWidth); x++) {
+        if (this.walkableGrid[y]) {
+          this.walkableGrid[y][x] = false;
+        }
+      }
+    }
   }
 
-  createPlayer() {
-    const tileX = 1;
-    const tileY = 9;
-    this.player = this.physics.add
-      .sprite(tileX * 32 + 16, tileY * 32 + 16, "player")
+  createLake(tileX, tileY, texture, tileWidth = 10, tileHeight = 10) {
+    this.createObstacle(tileX, tileY, texture, tileWidth, tileHeight);
+  }
+
+  createVillager(tileX, tileY , name , scaleSize) {
+    this.physics.add
+      .sprite(tileX * this.tileSize + 16, tileY * this.tileSize + 16,name)
       .setOrigin(0.5)
-      .setDisplaySize(32, 32);
+      .setDisplaySize(32, 32).setScale(scaleSize)
+      .setImmovable(true)
+      .setVelocity(0, 0);
+  }
+
+  createPlayer(tileX, tileY) {
+    const pixelX = tileX * this.tileSize + (this.tileSize / 2);
+    const pixelY = tileY * this.tileSize + (this.tileSize / 2);
+    this.player = this.physics.add
+      .sprite(pixelX, pixelY, "player")
+      .setOrigin(0.5)
+      .setDisplaySize(this.tileSize, this.tileSize).setScale(0.089);
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(10);
-
-    this.player.prevX = this.player.x;
-    this.player.prevY = this.player.y;
   }
 
   update() {
-    if (!this.player || !this.isWalkablePixel) return;
-
-    const speed = 160;
+    if (!this.player) return;
+    const speed = 120;
     let velocityX = 0;
     let velocityY = 0;
-
-    // Store current position before movement
-    this.player.prevX = this.player.x;
-    this.player.prevY = this.player.y;
-
-    // Check movement inputs
     if (this.cursors.left.isDown || this.wasd.A.isDown) {
       velocityX = -speed;
     } else if (this.cursors.right.isDown || this.wasd.D.isDown) {
       velocityX = speed;
     }
-
     if (this.cursors.up.isDown || this.wasd.W.isDown) {
       velocityY = -speed;
     } else if (this.cursors.down.isDown || this.wasd.S.isDown) {
       velocityY = speed;
     }
-
-    // Calculate the next position
-    const nextX = this.player.x + (velocityX * this.game.loop.delta) / 1000;
-    const nextY = this.player.y + (velocityY * this.game.loop.delta) / 1000;
-
-    // Check if the next position is walkable using canvas pixel detection
+    if (velocityX !== 0 && velocityY !== 0) {
+      const magnitude = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+      velocityX = (velocityX / magnitude) * speed;
+      velocityY = (velocityY / magnitude) * speed;
+    }
+    const delta = this.game.loop.delta / 1000;
+    const nextX = this.player.x + velocityX * delta;
+    const nextY = this.player.y + velocityY * delta;
     if (velocityX !== 0 || velocityY !== 0) {
-      // Check center point of player at next position
-      const isWalkable = this.isWalkablePixel(nextX, nextY);
-
-      if (isWalkable) {
+      if (this.isWalkableAt(nextX, nextY)) {
         this.player.setVelocity(velocityX, velocityY);
       } else {
         this.player.setVelocity(0, 0);
