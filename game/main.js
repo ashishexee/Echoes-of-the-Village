@@ -3,6 +3,7 @@ import { MenuScene } from "./scenes/MenuScene.js";
 import { LoadingScene } from "./scenes/LoadingScene.js";
 import { HomeScene } from "./scenes/HomeScene.js";
 import { LeaderboardScene } from "./scenes/LeaderboardScene.js";
+import { DialogueScene } from "./scenes/DialogueScene.js";
 
 const config = {
     type: Phaser.CANVAS,
@@ -19,7 +20,7 @@ const config = {
             debug: false
         }
     },
-    scene: [WalletScene, MenuScene, LoadingScene, HomeScene, LeaderboardScene]
+    scene: [WalletScene, MenuScene, LoadingScene, HomeScene,DialogueScene,LeaderboardScene]
 };
 
 window.addEventListener('resize', () => {

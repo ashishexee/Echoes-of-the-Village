@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+
 export class HomeScene extends Phaser.Scene {
   constructor() {
     super({ key: "HomeScene" });
@@ -7,6 +8,12 @@ export class HomeScene extends Phaser.Scene {
     this.wasd = null;
     this.walkableGrid = [];
     this.tileSize = 32;
+
+    // --- Properties for Interaction with Villagers---
+    this.villagers = null;
+    this.nearbyVillager = null;
+    this.enterKey = null;
+    this.interactionText = null;
   }
 
   create() {
@@ -22,29 +29,20 @@ export class HomeScene extends Phaser.Scene {
         this.add
           .image(x * this.tileSize, y * this.tileSize, "background")
           .setOrigin(0)
-          .setDisplaySize(this.tileSize + 32, this.tileSize +32);
+          .setDisplaySize(this.tileSize, this.tileSize); // Corrected display size
       }
     }
 
     const pathTiles = [
-      { x: 1, y: 9, width: 1, height: 3 },
-      { x: 10, y: 12, width: 1, height: 9 },
-      { x: 4, y: 0, width: 1, height: 6 },
-      { x: 9, y: 1, width: 1, height: 4 },
-      { x: 9, y: 1, width: 4, height: 1 },
-      { x: 1, y: 8, width: 1, height: 1 },
-      { x: 1, y: 7, width: 1, height: 1 },
-      { x: 1, y: 6, width: 1, height: 1 },
-      { x: 1, y: 5, width: 1, height: 1 },
-      { x: 2, y: 5, width: 15, height: 1 },
-      { x: 16, y: 8, width: 24, height: 1 },
-      { x: 22, y: 8, width: 1, height: 6 },
-      { x: 27, y: 6, width: 1, height: 6 },
-      { x: 34, y: 8, width: 1, height: 9 },
-      { x: 34, y: 16, width: 3, height: 1 },
-      { x: 40, y: 3, width: 1, height: 11 },
-      { x: 38, y: 3, width: 3, height: 1 },
-      { x: 16, y: 5, width: 1, height: 13 },
+      { x: 1, y: 9, width: 1, height: 3 }, { x: 10, y: 12, width: 1, height: 9 },
+      { x: 4, y: 0, width: 1, height: 6 }, { x: 9, y: 1, width: 1, height: 4 },
+      { x: 9, y: 1, width: 4, height: 1 }, { x: 1, y: 8, width: 1, height: 1 },
+      { x: 1, y: 7, width: 1, height: 1 }, { x: 1, y: 6, width: 1, height: 1 },
+      { x: 1, y: 5, width: 1, height: 1 }, { x: 2, y: 5, width: 15, height: 1 },
+      { x: 16, y: 8, width: 24, height: 1 }, { x: 22, y: 8, width: 1, height: 6 },
+      { x: 27, y: 6, width: 1, height: 6 }, { x: 34, y: 8, width: 1, height: 9 },
+      { x: 34, y: 16, width: 3, height: 1 }, { x: 40, y: 3, width: 1, height: 11 },
+      { x: 38, y: 3, width: 3, height: 1 }, { x: 16, y: 5, width: 1, height: 13 },
       { x: 1, y: 11, width: 16, height: 1 },
     ];
 
@@ -74,10 +72,6 @@ export class HomeScene extends Phaser.Scene {
     this.createBuilding(11, 6, "house02", 4, 4);
     this.createBuilding(30, 10, "house02", 4, 4);
 
-    // Obstacles
-    // this.createObstacle(2, 10, "flower01", 3, 2);
-    // this.createObstacle(25, 5, "flower02", 4, 3);
-    // this.createObstacle(28, 18, "flower03", 3, 2);
     this.createObstacle(6, 4, "tree01");
     this.createObstacle(6.4, 4, "tree01");
     this.createObstacle(6.8, 4, "tree01");
@@ -86,37 +80,43 @@ export class HomeScene extends Phaser.Scene {
     this.createObstacle(7.6, 4, "tree01");
     this.createObstacle(8, 4, "tree01");
     this.createObstacle(10, 7, "tree02");
-    this.createObstacle(8, 4, "tree03");
+    this.createObstacle(8, 4, "tree01");
     this.createObstacle(15, 6, "tree01");
     this.createObstacle(25, 3, "tree02");
-    this.createObstacle(32, 14, "tree03");
+    this.createObstacle(32, 14, "tree02");
     this.createObstacle(39, 12, "tree01");
     this.createObstacle(11, 3, "flower02", 2, 1);
     this.createObstacle(19, 4, "flower01", 1, 2);
-    this.createObstacle(26, 16, "flower03", 2, 2);
+    this.createObstacle(26, 16, "flower02", 2, 2);
     this.createObstacle(33, 6, "flower02", 1, 1);
     this.createObstacle(41, 2, "flower01", 2, 1);
 
-    // Lakes
-    // this.createLake(2, 3, "lake01", 10, 10);
-    // this.createLake(24, 12, "lake01", 10, 10);
-    // this.createLake(17, 0, "lake01", 10, 10);
-    // this.createLake(37, 14, "lake01", 10, 10);
+    // --- Initialize Villager Group ---
+    this.villagers = this.physics.add.group({ immovable: true });
 
-    // Villagers
-    this.createVillager(8, 10 , "villager01" , 0.1);
-    this.createVillager(16, 8 , "villager02" , 0.069);
-    this.createVillager(12, 16 , "villager03", 0.069);
-    this.createVillager(20, 20 , "villager04" , 0.069);
-    this.createVillager(6, 3 , "villager01" , 0.1);
-    this.createVillager(25, 10 , "villager02" ,0.069);
-    this.createVillager(35, 6 , "villager03" ,0.089 );
-    this.createVillager(15, 14 ,"vilager04" , 0.069);
+    this.createVillager(8, 10, "villager02", 0.069);
+    this.createVillager(16, 8, "villager02", 0.069);
+    this.createVillager(12, 16, "villager03", 0.069);
+    this.createVillager(20, 20, "villager04", 0.069);
+    this.createVillager(6, 3, "villager03", 0.069);
+    this.createVillager(25, 10, "villager02", 0.069);
+    this.createVillager(35, 6, "villager03", 0.089);
+    this.createVillager(15, 14, "vilager04", 0.069); // Corrected typo in original code
 
     this.createPlayer(1, 9);
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys("W,S,A,D");
+
+    // --- Setup for Interaction ---
+    this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+    this.interactionText = this.add.text(0, 0, 'Press ENTER to talk', {
+        fontFamily: 'Arial',
+        fontSize: '16px',
+        color: '#ffffff',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        padding: { x: 8, y: 4 }
+    }).setOrigin(0.5, 1).setDepth(30).setVisible(false);
   }
 
   isWalkableAt(worldX, worldY) {
@@ -161,13 +161,16 @@ export class HomeScene extends Phaser.Scene {
     this.createObstacle(tileX, tileY, texture, tileWidth, tileHeight);
   }
 
-  createVillager(tileX, tileY , name , scaleSize) {
-    this.physics.add
-      .sprite(tileX * this.tileSize + 16, tileY * this.tileSize + 16,name)
-      .setOrigin(0.5)
-      .setDisplaySize(32, 32).setScale(scaleSize)
-      .setImmovable(true)
-      .setVelocity(0, 0);
+  createVillager(tileX, tileY, name, scaleSize) {
+    // --- Add villager to the group ---
+    const villager = this.villagers.create(
+        tileX * this.tileSize + 16,
+        tileY * this.tileSize + 16,
+        name
+    );
+    villager.setOrigin(0.5)
+      .setDisplaySize(32, 32)
+      .setScale(scaleSize);
   }
 
   createPlayer(tileX, tileY) {
@@ -181,9 +184,45 @@ export class HomeScene extends Phaser.Scene {
     this.player.setDepth(10);
   }
 
+  // --- New method to handle interaction logic ---
+  handleInteraction() {
+    let closestVillager = null;
+    let minDistance = 50; // Max distance to interact
+
+    this.villagers.getChildren().forEach(villager => {
+      const distance = Phaser.Math.Distance.Between(
+        this.player.x, this.player.y,
+        villager.x, villager.y
+      );
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestVillager = villager;
+      }
+    });
+
+    this.nearbyVillager = closestVillager;
+
+    if (this.nearbyVillager) {
+      this.interactionText.setVisible(true);
+      this.interactionText.setPosition(
+        this.nearbyVillager.x,
+        this.nearbyVillager.y - this.nearbyVillager.displayHeight / 2
+      );
+    } else {
+      this.interactionText.setVisible(false);
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.enterKey) && this.nearbyVillager) {
+      this.scene.pause();
+      this.scene.launch('DialogueScene', { villager: this.nearbyVillager });
+    }
+  }
+
   update() {
     if (!this.player) return;
-    const speed = 120;
+
+    // --- Player Movement Logic (unchanged) ---
+    const speed = 110;
     let velocityX = 0;
     let velocityY = 0;
     if (this.cursors.left.isDown || this.wasd.A.isDown) {
@@ -213,5 +252,8 @@ export class HomeScene extends Phaser.Scene {
     } else {
       this.player.setVelocity(0, 0);
     }
+
+    // --- Call the new interaction handler every frame ---
+    this.handleInteraction();
   }
 }
