@@ -9,7 +9,6 @@ export class HomeScene extends Phaser.Scene {
     this.walkableGrid = [];
     this.tileSize = 32;
 
-    // --- Properties for Interaction with Villagers---
     this.villagers = null;
     this.nearbyVillager = null;
     this.enterKey = null;
@@ -17,10 +16,6 @@ export class HomeScene extends Phaser.Scene {
   }
 
   create() {
-
-
-
-    // Start the main background music if it's not already playing
     if (!this.sound.get('background_music') || !this.sound.get('background_music').isPlaying) {
         this.sound.play('background_music', { loop: true, volume: 0.4 });
     }
@@ -37,7 +32,7 @@ export class HomeScene extends Phaser.Scene {
         this.add
           .image(x * this.tileSize, y * this.tileSize, "background")
           .setOrigin(0)
-          .setDisplaySize(this.tileSize, this.tileSize); // Corrected display size
+          .setDisplaySize(this.tileSize, this.tileSize);
       }
     }
 
@@ -111,7 +106,6 @@ export class HomeScene extends Phaser.Scene {
      this.createObstacle(17,15, "forest02")
     this.createObstacle(21,15, "forest02")
 
-    // --- Initialize Villager Group ---
     this.villagers = this.physics.add.group({ immovable: true });
 
     this.createVillager(8, 10, "villager02", 0.069);
@@ -121,14 +115,13 @@ export class HomeScene extends Phaser.Scene {
     this.createVillager(6, 3, "villager03", 0.069);
     this.createVillager(25, 10, "villager02", 0.069);
     this.createVillager(35, 6, "villager03", 0.089);
-    this.createVillager(15, 14, "vilager04", 0.069); // Corrected typo in original code
+    this.createVillager(15, 14, "vilager04", 0.069);
 
     this.createPlayer(1, 9);
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys("W,S,A,D");
 
-    // --- Setup for Interaction ---
     this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
     this.interactionText = this.add.text(0, 0, 'Press ENTER to talk', {
         fontFamily: 'Arial',
@@ -190,7 +183,6 @@ export class HomeScene extends Phaser.Scene {
   }
 
   createVillager(tileX, tileY, name, scaleSize) {
-    // --- Add villager to the group ---
     const villager = this.villagers.create(
         tileX * this.tileSize + 16,
         tileY * this.tileSize + 16,
@@ -212,10 +204,9 @@ export class HomeScene extends Phaser.Scene {
     this.player.setDepth(10);
   }
 
-  // --- New method to handle interaction logic ---
   handleInteraction() {
     let closestVillager = null;
-    let minDistance = 50; // Max distance to interact
+    let minDistance = 50;
 
     this.villagers.getChildren().forEach(villager => {
       const distance = Phaser.Math.Distance.Between(
@@ -250,7 +241,6 @@ export class HomeScene extends Phaser.Scene {
   update() {
     if (!this.player) return;
 
-    // --- Player Movement Logic (unchanged) ---
     const speed = 110;
     let velocityX = 0;
     let velocityY = 0;
@@ -282,7 +272,6 @@ export class HomeScene extends Phaser.Scene {
       this.player.setVelocity(0, 0);
     }
 
-    // --- Call the new interaction handler every frame ---
     this.handleInteraction();
   }
 }

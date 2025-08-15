@@ -48,8 +48,6 @@ export class VideoScene extends Phaser.Scene {
     startHomeScene() {
         this.cameras.main.fadeOut(500, 0, 0, 0);
         this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-            // Show the UI frame again for the home scene
-
             this.scene.start('HomeScene');
         });
     }
