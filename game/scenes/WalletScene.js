@@ -1,59 +1,103 @@
 import Phaser from "phaser";
+
 export class WalletScene extends Phaser.Scene {
     constructor() {
         super({ key: 'WalletScene' });
     }
 
     preload() {
-         this.load.image('connect_btn', '/assets/images/ui/connect_btn.png');
-        // this.load.image('logo', '/assets/images/ui/logo.png');
+        this.load.image('bg', '/assets/images/world/Bg04.png'); // your background
     }
 
-   create() {
-    const centerX = this.cameras.main.width / 2;
-    const centerY = this.cameras.main.height / 2;
+    create() {
+        const centerX = this.cameras.main.width / 2;
+        const centerY = this.cameras.main.height / 2;
 
-    // Create blue rectangle as button
-    const connectBtn = this.add.rectangle(centerX, centerY + 70, 200, 50, 0x0000ff) // blue fill
-        .setInteractive({ useHandCursor: true });
+        // === Background ===
+        const bg = this.add.image(centerX, centerY, 'bg');
+        bg.setDisplaySize(this.cameras.main.width, this.cameras.main.height);
 
-    // Add text over the button
-    const btnText = this.add.text(centerX, centerY + 70, 'Connect Wallet', {
-        fontFamily: 'Arial',
-        fontSize: '20px',
-        color: '#ffffff',
-        fontStyle: 'bold'
-    }).setOrigin(0.5);
+        // === Dim overlay ===
+        this.add.rectangle(centerX, centerY, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.4);
 
-    // Button click
-    connectBtn.on('pointerdown', () => {
-        this.connectWallet();
-    });
+        // === Glassy panel ===
+        let panel = this.add.rectangle(centerX, centerY, 400, 250, 0x000000, 0.6)
+            .setStrokeStyle(3, 0xffffff, 0.3)
+            .setOrigin(0.5)
+            .setAlpha(0);
+        this.tweens.add({
+            targets: panel,
+            alpha: 1,
+            scaleX: { from: 0.8, to: 1 },
+            scaleY: { from: 0.8, to: 1 },
+            ease: 'Back.Out',
+            duration: 600
+        });
 
-    // Instruction text
-    this.add.text(centerX, centerY - 20, 'Connect your MetaMask wallet to start', {
-        fontFamily: 'Arial',
-        fontSize: 22,
-        color: '#ffffff'
-    }).setOrigin(0.5);
+        // === Title ===
+        this.add.text(centerX, centerY - 70, "Connect Your Wallet", {
+            fontFamily: 'Arial',
+            fontSize: '28px',
+            fontStyle: 'bold',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5);
 
-    // Skip option for development
-    const skipText = this.add.text(centerX, centerY + 200, '[DEV] Skip wallet connection', {
-        fontFamily: 'Arial',
-        fontSize: 16,
-        color: '#aaaaaa'
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+        // === Connect Button ===
+        const connectBtn = this.add.rectangle(centerX, centerY, 220, 60, 0x1e90ff, 1)
+            .setStrokeStyle(2, 0xffffff)
+            .setOrigin(0.5)
+            .setInteractive({ useHandCursor: true });
 
-    skipText.on('pointerdown', () => {
-        this.scene.start('MenuScene');
-    });
-}
+        // Glow effect
+        this.tweens.add({
+            targets: connectBtn,
+            alpha: { from: 0.85, to: 1 },
+            repeat: -1,
+            yoyo: true,
+            duration: 1000
+        });
 
+        // Button hover effect
+        connectBtn.on('pointerover', () => {
+            connectBtn.setFillStyle(0x3cb0ff, 1);
+        });
+        connectBtn.on('pointerout', () => {
+            connectBtn.setFillStyle(0x1e90ff, 1);
+        });
 
-   async connectWallet() {
+        // Button label
+        const btnText = this.add.text(centerX, centerY, 'Connect Wallet', {
+            fontFamily: 'Arial',
+            fontSize: '22px',
+            fontStyle: 'bold',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+
+        connectBtn.on('pointerdown', () => {
+            this.connectWallet();
+        });
+
+        // === Skip option ===
+        const skipText = this.add.text(centerX, centerY + 100, '[DEV] Skip wallet connection', {
+            fontFamily: 'Arial',
+            fontSize: '14px',
+            color: '#cccccc'
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        skipText.on('pointerover', () => skipText.setColor('#ffffff'));
+        skipText.on('pointerout', () => skipText.setColor('#cccccc'));
+        skipText.on('pointerdown', () => {
+            this.scene.start('MenuScene');
+        });
+    }
+
+    async connectWallet() {
         try {
             if (window.ethereum) {
-                // Request account access if needed
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 console.log('Connected account:', accounts[0]);
                 this.scene.start('MenuScene');
@@ -63,10 +107,12 @@ export class WalletScene extends Phaser.Scene {
         } catch (error) {
             console.error('Failed to connect wallet:', error);
             const centerX = this.cameras.main.width / 2;
-            this.add.text(centerX, this.cameras.main.height / 2 + 130, 'Failed to connect. Please try again.', {
+            this.add.text(centerX, this.cameras.main.height / 2 + 150, 'Failed to connect. Please try again.', {
                 fontFamily: 'Arial',
                 fontSize: 16,
-                color: '#ff0000'
+                color: '#ff0000',
+                stroke: '#000000',
+                strokeThickness: 3
             }).setOrigin(0.5);
         }
     }
