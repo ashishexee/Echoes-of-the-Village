@@ -14,7 +14,6 @@ export class DialogueScene extends Phaser.Scene {
 
     create() {
         this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.7).setOrigin(0);
-
         const panelWidth = this.cameras.main.width * 0.9;
         const panelHeight = this.cameras.main.height * 0.8;
         const panelX = this.cameras.main.centerX;

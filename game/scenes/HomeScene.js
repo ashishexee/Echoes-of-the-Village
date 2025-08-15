@@ -17,6 +17,16 @@ export class HomeScene extends Phaser.Scene {
   }
 
   create() {
+    // Stop the menu music
+    if (this.sound.get('menu_screen') && this.sound.get('menu_screen').isPlaying) {
+        this.sound.stopByKey('menu_screen');
+    }
+
+    // Start the main background music if it's not already playing
+    if (!this.sound.get('background_music') || !this.sound.get('background_music').isPlaying) {
+        this.sound.play('background_music', { loop: true, volume: 0.4 });
+    }
+
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     const tilesX = Math.ceil(width / this.tileSize);
@@ -214,6 +224,7 @@ export class HomeScene extends Phaser.Scene {
 
     if (Phaser.Input.Keyboard.JustDown(this.enterKey) && this.nearbyVillager) {
       this.scene.pause();
+      this.sound.play('villager_accept' , {volume  : 6});
       this.scene.launch('DialogueScene', { villager: this.nearbyVillager });
     }
   }

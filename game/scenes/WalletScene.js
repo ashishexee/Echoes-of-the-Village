@@ -6,93 +6,104 @@ export class WalletScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('bg', '/assets/images/world/Bg04.png'); // your background
+        this.load.image('bg', '/assets/images/world/Bg04.png');
+        this.load.audio('menu_screen', '/assets/music/intro_music.MP3');
     }
 
     create() {
+        // Start menu music if it's not already playing
+        if (!this.sound.get('menu_screen') || !this.sound.get('menu_screen').isPlaying) {
+            this.sound.play('menu_screen', { loop: true, volume: 0.5 });
+        }
+
         const centerX = this.cameras.main.width / 2;
         const centerY = this.cameras.main.height / 2;
 
-        // === Background ===
-        const bg = this.add.image(centerX, centerY, 'bg');
-        bg.setDisplaySize(this.cameras.main.width, this.cameras.main.height);
+        // Add background image and overlay
+        this.add.image(0, 0, 'bg').setOrigin(0).setDisplaySize(this.cameras.main.width, this.cameras.main.height);
+        this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.7).setOrigin(0);
 
-        // === Dim overlay ===
-        this.add.rectangle(centerX, centerY, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.4);
+        // Main Panel
+        const panelWidth = 500;
+        const panelHeight = 400;
+        this.add.graphics()
+            .fillStyle(0x1a1a1a, 0.9)
+            .fillRoundedRect(centerX - panelWidth / 2, centerY - panelHeight / 2, panelWidth, panelHeight, 20)
+            .lineStyle(2, 0xd4af37, 1) // Gold-like border
+            .strokeRoundedRect(centerX - panelWidth / 2, centerY - panelHeight / 2, panelWidth, panelHeight, 20);
 
-        // === Glassy panel ===
-        let panel = this.add.rectangle(centerX, centerY, 400, 250, 0x000000, 0.6)
-            .setStrokeStyle(3, 0xffffff, 0.3)
-            .setOrigin(0.5)
-            .setAlpha(0);
-        this.tweens.add({
-            targets: panel,
-            alpha: 1,
-            scaleX: { from: 0.8, to: 1 },
-            scaleY: { from: 0.8, to: 1 },
-            ease: 'Back.Out',
-            duration: 600
-        });
-
-        // === Title ===
-        this.add.text(centerX, centerY - 70, "Connect Your Wallet", {
-            fontFamily: 'Arial',
-            fontSize: '28px',
-            fontStyle: 'bold',
+        // Title
+        this.add.text(centerX, centerY - 120, 'Connect Your Wallet', {
+            fontFamily: 'Georgia, serif',
+            fontSize: '40px',
             color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 4
+            align: 'center',
+            shadow: {
+                offsetX: 2,
+                offsetY: 2,
+                color: '#000',
+                blur: 5,
+                stroke: true,
+                fill: true
+            }
         }).setOrigin(0.5);
 
-        // === Connect Button ===
-        const connectBtn = this.add.rectangle(centerX, centerY, 220, 60, 0x1e90ff, 1)
-            .setStrokeStyle(2, 0xffffff)
-            .setOrigin(0.5)
-            .setInteractive({ useHandCursor: true });
-
-        // Glow effect
-        this.tweens.add({
-            targets: connectBtn,
-            alpha: { from: 0.85, to: 1 },
-            repeat: -1,
-            yoyo: true,
-            duration: 1000
-        });
-
-        // Button hover effect
-        connectBtn.on('pointerover', () => {
-            connectBtn.setFillStyle(0x3cb0ff, 1);
-        });
-        connectBtn.on('pointerout', () => {
-            connectBtn.setFillStyle(0x1e90ff, 1);
-        });
-
-        // Button label
-        const btnText = this.add.text(centerX, centerY, 'Connect Wallet', {
-            fontFamily: 'Arial',
-            fontSize: '22px',
-            fontStyle: 'bold',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5);
-
-        connectBtn.on('pointerdown', () => {
+        // Connect Button
+        this.createButton(centerX, centerY + 20, 'Connect Wallet', () => {
             this.connectWallet();
         });
 
-        // === Skip option ===
-        const skipText = this.add.text(centerX, centerY + 100, '[DEV] Skip wallet connection', {
+        // Skip Button
+        const skipText = this.add.text(centerX, centerY + 120, '[DEV] Skip and Play', {
             fontFamily: 'Arial',
-            fontSize: '14px',
-            color: '#cccccc'
+            fontSize: '16px',
+            color: '#aaaaaa'
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
         skipText.on('pointerover', () => skipText.setColor('#ffffff'));
-        skipText.on('pointerout', () => skipText.setColor('#cccccc'));
-        skipText.on('pointerdown', () => {
-            this.scene.start('MenuScene');
+        skipText.on('pointerout', () => skipText.setColor('#aaaaaa'));
+        skipText.on('pointerdown', () => this.scene.start('MenuScene'));
+    }
+
+    createButton(x, y, text, callback) {
+        const buttonWidth = 280;
+        const buttonHeight = 60;
+
+        const button = this.add.container(x, y);
+
+        const background = this.add.graphics()
+            .fillStyle(0x333333, 1)
+            .fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
+
+        const border = this.add.graphics()
+            .lineStyle(2, 0xd4af37, 1)
+            .strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
+
+        const buttonText = this.add.text(0, 0, text, {
+            fontFamily: 'Arial',
+            fontSize: '24px',
+            color: '#ffffff',
+        }).setOrigin(0.5);
+
+        button.add([background, border, buttonText]);
+        button.setSize(buttonWidth, buttonHeight);
+        button.setInteractive({ useHandCursor: true });
+
+        button.on('pointerover', () => {
+            background.clear().fillStyle(0x444444, 1).fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
+            border.clear().lineStyle(2, 0xffe74a, 1).strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
+            this.tweens.add({ targets: button, scale: 1.05, duration: 150, ease: 'Sine.easeInOut' });
         });
+
+        button.on('pointerout', () => {
+            background.clear().fillStyle(0x333333, 1).fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
+            border.clear().lineStyle(2, 0xd4af37, 1).strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
+            this.tweens.add({ targets: button, scale: 1, duration: 150, ease: 'Sine.easeInOut' });
+        });
+
+        button.on('pointerdown', callback);
+
+        return button;
     }
 
     async connectWallet() {
@@ -100,7 +111,7 @@ export class WalletScene extends Phaser.Scene {
             if (window.ethereum) {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 console.log('Connected account:', accounts[0]);
-                this.scene.start('MenuScene');
+                this.scene.start('MenuScene', { account: accounts[0] });
             } else {
                 throw new Error('MetaMask not found. Please install MetaMask.');
             }
@@ -117,3 +128,4 @@ export class WalletScene extends Phaser.Scene {
         }
     }
 }
+
