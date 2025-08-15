@@ -19,20 +19,17 @@ export class MenuScene extends Phaser.Scene {
         const centerX = this.scale.width / 2;
         const centerY = this.scale.height / 2;
 
-        // Add background image and overlay
         this.add.image(0, 0, 'menu_background').setOrigin(0).setDisplaySize(this.scale.width, this.scale.height);
         this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x000000, 0.7).setOrigin(0);
 
-        // Main Panel
         const panelWidth = 600;
         const panelHeight = 500;
         this.add.graphics()
             .fillStyle(0x1a1a1a, 0.9)
             .fillRoundedRect(centerX - panelWidth / 2, centerY - panelHeight / 2, panelWidth, panelHeight, 20)
-            .lineStyle(2, 0xd4af37, 1) // Gold-like border
+            .lineStyle(2, 0xd4af37, 1)
             .strokeRoundedRect(centerX - panelWidth / 2, centerY - panelHeight / 2, panelWidth, panelHeight, 20);
 
-        // Title
         this.add.text(centerX, centerY - 160, 'Echoes of the Village', {
             fontFamily: 'Georgia, serif',
             fontSize: '56px',
@@ -47,8 +44,7 @@ export class MenuScene extends Phaser.Scene {
                 fill: true
             }
         }).setOrigin(0.5);
-
-        // Buttons
+ 
         this.createButton(centerX, centerY, 'Enter Game', () => {
             this.scene.start('LoadingScene');
         });
@@ -56,8 +52,7 @@ export class MenuScene extends Phaser.Scene {
         this.createButton(centerX, centerY + 90, 'Leaderboard', () => {
             this.scene.start('LeaderboardScene');
         });
-
-        // Footer Text
+ 
         let footerText = 'Not Connected';
         if (this.walletAddress) {
             const formattedAddress = `${this.walletAddress.substring(0, 6)}...${this.walletAddress.substring(this.walletAddress.length - 4)}`;
