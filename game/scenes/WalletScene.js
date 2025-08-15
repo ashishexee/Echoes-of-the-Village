@@ -7,13 +7,14 @@ export class WalletScene extends Phaser.Scene {
 
     preload() {
         this.load.image('bg', '/assets/images/world/Bg04.png');
-        this.load.audio('menu_screen', '/assets/music/intro_music.MP3');
+        this.load.audio('intro_music', '/assets/music/intro_music.MP3');
+        this.load.image('gaming_frame', 'assets/images/ui/gaming_frame.png');
     }
 
     create() {
         // Start menu music if it's not already playing
-        if (!this.sound.get('menu_screen') || !this.sound.get('menu_screen').isPlaying) {
-            this.sound.play('menu_screen', { loop: true, volume: 0.5 });
+        if (!this.sound.get('intro_music') || !this.sound.get('intro_music').isPlaying) {
+            this.sound.play('intro_music', { loop: true, volume: 0.5 });
         }
 
         const centerX = this.cameras.main.width / 2;

@@ -17,10 +17,8 @@ export class HomeScene extends Phaser.Scene {
   }
 
   create() {
-    // Stop the menu music
-    if (this.sound.get('menu_screen') && this.sound.get('menu_screen').isPlaying) {
-        this.sound.stopByKey('menu_screen');
-    }
+
+
 
     // Start the main background music if it's not already playing
     if (!this.sound.get('background_music') || !this.sound.get('background_music').isPlaying) {

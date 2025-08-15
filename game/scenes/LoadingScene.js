@@ -109,7 +109,7 @@ export class LoadingScene extends Phaser.Scene {
     this.time.delayedCall(500, () => {
       this.cameras.main.fadeOut(500, 0, 0, 0);
       this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-        this.scene.start("HomeScene");
+        this.scene.start("VideoScene");
       });
     });
   }
