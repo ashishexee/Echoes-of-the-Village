@@ -105,7 +105,7 @@ export class WalletScene extends Phaser.Scene {
 
     skipText.on("pointerover", () => skipText.setColor("#ffffff"));
     skipText.on("pointerout", () => skipText.setColor("#aaaaaa"));
-    skipText.on("pointerdown", () => this.scene.start("MenuScene"));
+    skipText.on("pointerdown", () => this.scene.start("LoadingScene", { nextScene: 'HomeScene' }));
   }
 
   createButton(x, y, text, callback) {

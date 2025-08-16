@@ -1,27 +1,86 @@
 import Phaser from "phaser";
+
 export class LeaderboardScene extends Phaser.Scene {
     constructor() {
         super({ key: 'LeaderboardScene' });
     }
 
+    preload() {
+        this.load.video(
+            "bg_video",
+            "assets/cut-scene/bg04_animated.mp4",
+            "loadeddata",
+            false,
+            true
+        );
+    }
+
     create() {
         const { width, height } = this.scale;
 
-        this.add.text(width / 2, height * 0.2, 'LEADERBOARD', {
+        // Add animated background
+        const bgVideo = this.add.video(width / 2, height / 2, "bg_video");
+        bgVideo.play(true);
+        const zoomOutFactor = 0.45;
+        
+        const scaleX = width / (bgVideo.width || width);
+        const scaleY = height / (bgVideo.height || height);
+        const scale = Math.min(scaleX, scaleY) * zoomOutFactor;
+        bgVideo.setScale(scale).setScrollFactor(0).setOrigin(0.5);
+        bgVideo.setVolume(15);
+        bgVideo.setMute(false);
+        bgVideo.setActive(true);
+
+        this.input.once("pointerdown", () => {
+            bgVideo.setMute(false);
+        }, this);
+
+        // Add semi-transparent overlay
+        this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0);
+
+        // Create panel
+        const panelWidth = 600;
+        const panelHeight = 500;
+        const panelX = width / 2;
+        const panelY = height / 2;
+
+        this.add.graphics()
+            .fillStyle(0x1a1a1a, 0.9)
+            .fillRoundedRect(panelX - panelWidth / 2, panelY - panelHeight / 2, panelWidth, panelHeight, 20)
+            .lineStyle(2, 0xd4af37, 1)
+            .strokeRoundedRect(panelX - panelWidth / 2, panelY - panelHeight / 2, panelWidth, panelHeight, 20);
+
+        // Add title
+        this.add.text(width / 2, panelY - 180, 'LEADERBOARD', {
+            fontFamily: 'Georgia, serif',
             fontSize: '48px',
-            fill: '#ffffff'
+            color: '#ffffff',
+            align: 'center',
+            shadow: {
+                offsetX: 2,
+                offsetY: 2,
+                color: '#000',
+                blur: 5,
+                stroke: true,
+                fill: true
+            }
         }).setOrigin(0.5);
 
-        this.add.text(width / 2, height * 0.4, 'Coming Soon...', {
+        // Add 'Coming Soon' text
+        this.add.text(width / 2, panelY, 'Coming Soon...', {
+            fontFamily: 'Arial',
             fontSize: '24px',
-            fill: '#cccccc'
+            color: '#cccccc'
         }).setOrigin(0.5);
 
-        this.add.text(width / 2, height * 0.8, 'Press SPACE to return to village', {
+        // Add instruction text
+        this.add.text(width / 2, panelY + 200, 'Press SPACE to return to village', {
+            fontFamily: 'Arial',
             fontSize: '16px',
-            fill: '#ffffff'
+            color: '#aaaaaa'
         }).setOrigin(0.5);
 
+        // Add key event
         this.input.keyboard.once('keydown-SPACE', () => {
             this.scene.start('HomeScene');
         });

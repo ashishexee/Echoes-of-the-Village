@@ -4,6 +4,10 @@ export class LoadingScene extends Phaser.Scene {
     super({ key: "LoadingScene" });
   }
 
+  init(data) {
+    this.nextScene = (data && data.nextScene) ? data.nextScene : 'VideoScene';
+  }
+
   preload() {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
@@ -57,7 +61,9 @@ export class LoadingScene extends Phaser.Scene {
     this.load.image("tree02", "/assets/images/world/tree03.png");
     this.load.image("flower01", "/assets/images/world/flowers01.png");
     this.load.image("flower02", "/assets/images/world/flowers02.png");
-    this.load.image("path", "/assets/images/world/solid_path.png");
+    this.load.image("flower03" , "/assets/images/world/flowers03.png");
+    this.load.image("path", "/assets/images/world/path.png");
+    this.load.image("path_rounded" , "/assets/images/world/path_rounded.png");
     this.load.image("background", "assets/images/world/background.png");
     this.load.image("windmill", "assets/images/world/windmill.png");
     this.load.image("farmhouse", "assets/images/world/farmhouse.png");
@@ -68,6 +74,9 @@ export class LoadingScene extends Phaser.Scene {
     this.load.image("forest01", "/assets/images/world/forest01.png");
     this.load.image("forest02", "/assets/images/world/forest02.png");
     this.load.image("player", "/assets/images/characters/mc.png");
+    this.load.image("crop02" , "/assets/images/world/crop02.png");
+    this.load.image("crop03" , "/assets/images/world/crop03.png");
+    this.load.image("tree05","/assets/images/world/tree05.png");
     this.load.image("villager01", "assets/images/characters/villager01.png");
     this.load.image("villager02", "assets/images/characters/villager02.png");
     this.load.image("villager03", "assets/images/characters/villager03.png");
@@ -75,6 +84,7 @@ export class LoadingScene extends Phaser.Scene {
 
     this.load.audio("background_music", "/assets/music/background_audio.mp3");
     this.load.audio("villager_accept", "/assets/music/villager_accept.ogg");
+    this.load.audio("thunder", "/assets/music/thunder.mp3");
 
 
     this.load.on("progress", (value) => {
@@ -111,7 +121,7 @@ export class LoadingScene extends Phaser.Scene {
     this.time.delayedCall(500, () => {
       this.cameras.main.fadeOut(500, 0, 0, 0);
       this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-        this.scene.start("VideoScene");
+        this.scene.start(this.nextScene);
       });
     });
   }
