@@ -4,6 +4,10 @@ export class MenuScene extends Phaser.Scene {
     constructor() {
         super({ key: 'MenuScene' });
         this.walletAddress = null;
+        this.playerGender = null;
+        this._genderOverlay = null;
+        this.enterButton = null;
+        this.leaderboardButton = null;
     }
 
     init(data) {
@@ -43,7 +47,7 @@ export class MenuScene extends Phaser.Scene {
         const bgVideo = this.add.video(width / 2, height / 2, "bg_video");
         bgVideo.play(true);
         const zoomOutFactor = 0.45;
-        
+
         const scaleX = width / (bgVideo.width || width);
         const scaleY = height / (bgVideo.height || height);
         const scale = Math.min(scaleX, scaleY) * zoomOutFactor;
@@ -56,7 +60,7 @@ export class MenuScene extends Phaser.Scene {
             bgVideo.setMute(false);
         }, this);
 
-        // Add semi-transparent overlay
+        // Add semi-transparent overlay and panel
         this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0);
 
         const panelWidth = 600;
@@ -81,15 +85,16 @@ export class MenuScene extends Phaser.Scene {
                 fill: true
             }
         }).setOrigin(0.5);
- 
-        this.createButton(width / 2, height / 2, 'Enter Game', () => {
-            this.scene.start('LoadingScene');
+
+        // Enter Game opens gender selection modal
+        this.enterButton = this.createButton(width / 2, height / 2, 'Enter Game', () => {
+            this.showGenderSelection();
         });
 
-        this.createButton(width / 2, height / 2 + 90, 'Leaderboard', () => {
+        this.leaderboardButton = this.createButton(width / 2, height / 2 + 90, 'Leaderboard', () => {
             this.scene.start('LeaderboardScene');
         });
- 
+
         let footerText = 'Not Connected';
         if (this.walletAddress) {
             const formattedAddress = `${this.walletAddress.substring(0, 6)}...${this.walletAddress.substring(this.walletAddress.length - 4)}`;
@@ -100,6 +105,63 @@ export class MenuScene extends Phaser.Scene {
             fontSize: '14px',
             color: '#aaaaaa'
         }).setOrigin(0.5);
+    }
+
+    showGenderSelection() {
+        if (this._genderOverlay) return;
+        const { width, height } = this.scale;
+
+        // dark blocker to prevent clicking underlying UI
+        const blocker = this.add.rectangle(0, 0, width, height, 0x000000, 0.6).setOrigin(0).setInteractive();
+
+        const panelW = 480;
+        const panelH = 220;
+        const panelX = width / 2 - panelW / 2;
+        const panelY = height / 2 - panelH / 2;
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x1a1a1a, 0.98);
+        panel.fillRoundedRect(panelX, panelY, panelW, panelH, 14);
+        panel.lineStyle(2, 0xd4af37, 1);
+        panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 14);
+
+        const title = this.add.text(width / 2, height / 2 - 50, 'Select Gender', {
+            fontFamily: 'Georgia, serif',
+            fontSize: '32px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+
+        // Male button
+        const maleBtn = this.createButton(width / 2 - 110, height / 2 + 30, 'Male', () => {
+            this.playerGender = 'Male';
+            this.closeGenderSelectionAndStart();
+        });
+
+        // Female button
+        const femaleBtn = this.createButton(width / 2 + 110, height / 2 + 30, 'Female', () => {
+            this.playerGender = 'Female';
+            this.closeGenderSelectionAndStart();
+        });
+
+        // Group overlay elements so we can destroy later
+        this._genderOverlay = this.add.container(0, 0, [blocker, panel, title, maleBtn, femaleBtn]);
+        this._genderOverlay.setDepth(1000);
+
+        // visually de-emphasize underlying buttons
+        if (this.enterButton) this.enterButton.alpha = 0.5;
+        if (this.leaderboardButton) this.leaderboardButton.alpha = 0.5;
+    }
+
+    closeGenderSelectionAndStart() {
+        if (this._genderOverlay) {
+            this._genderOverlay.destroy();
+            this._genderOverlay = null;
+        }
+        if (this.enterButton) this.enterButton.alpha = 1;
+        if (this.leaderboardButton) this.leaderboardButton.alpha = 1;
+
+        // Forward gender to LoadingScene so LoadingScene / VideoScene can consume it
+        this.scene.start('LoadingScene', { playerGender: this.playerGender, nextScene: 'VideoScene' });
     }
 
     createButton(x, y, text, callback) {
@@ -117,6 +179,7 @@ export class MenuScene extends Phaser.Scene {
             .graphics()
             .lineStyle(2, 0xd4af37, 1)
             .strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
+
         const buttonText = this.add
             .text(0, 0, text, {
                 fontFamily: 'Arial',
@@ -166,5 +229,4 @@ export class MenuScene extends Phaser.Scene {
         button.on("pointerdown", callback);
 
         return button;
-    }
-}
+    }}
