@@ -61,10 +61,12 @@ export class LoadingScene extends Phaser.Scene {
     this.load.image("background", "assets/images/world/background.png");
     this.load.image("windmill", "assets/images/world/windmill.png");
     this.load.image("farmhouse", "assets/images/world/farmhouse.png");
-    this.load.image("lake01", "/assets/images/world/lake01.png");
-    this.load.image("church01", "/assets/images/world/church02.png");
-    this.load.image("crop01", "/assets/images/world/crop01.png");
-
+    this.load.image("lake01" , "/assets/images/world/lake01.png");
+    this.load.image("lake03" , "/assets/images/world/lake03.png");
+    this.load.image("church01" , "/assets/images/world/church02.png");
+    this.load.image("crop01" , "/assets/images/world/crop01.png");
+    this.load.image("forest01", "/assets/images/world/forest01.png");
+    this.load.image("forest02", "/assets/images/world/forest02.png");
     this.load.image("player", "/assets/images/characters/mc.png");
     this.load.image("villager01", "assets/images/characters/villager01.png");
     this.load.image("villager02", "assets/images/characters/villager02.png");

@@ -67,10 +67,10 @@ export class HomeScene extends Phaser.Scene {
     this.createBuilding(0, 16, "house01", 5, 5);
     this.createBuilding(5, 16, "house01", 5, 5);
     this.createBuilding(0.5, 12, "house02", 4, 4);
-    this.createBuilding(14, 0, "house01", 4, 4);
-    this.createBuilding(25.6, 1.5, "church01", 4, 4);
+    this.createBuilding(13, 0, "house01", 4, 4);
+    this.createBuilding(27, 1.5, "church01", 4, 4);
     this.createBuilding(17.4, 10, "house02", 4, 4);
-    this.createBuilding(32, 2, "house02", 4, 4);
+    this.createBuilding(33, 1, "windmill", 4, 4);
     this.createBuilding(11.5, 14.7, "house02", 4, 4);
     this.createBuilding(11, 6, "house02", 4, 4);
     this.createBuilding(30, 10, "house02", 4, 4);
@@ -85,7 +85,6 @@ export class HomeScene extends Phaser.Scene {
     this.createObstacle(10, 7, "tree02");
     this.createObstacle(8, 4, "tree01");
     this.createObstacle(15, 6, "tree01");
-    this.createObstacle(25, 3, "tree02");
     this.createObstacle(32, 14, "tree02");
     this.createObstacle(39, 12, "tree01");
     this.createObstacle(11, 3, "flower02", 2, 1);
@@ -93,6 +92,19 @@ export class HomeScene extends Phaser.Scene {
     this.createObstacle(26, 16, "flower02", 2, 2);
     this.createObstacle(33, 6, "flower02", 1, 1);
     this.createObstacle(41, 2, "flower01", 2, 1);
+    this.createObstacle(17,2.2, "forest01")
+    this.createObstacle(21,2.2, "forest01")
+    this.createObstacle(17,3.8, "forest01")
+    this.createObstacle(21,3.8, "forest01")
+     this.createObstacle(17,.6, "forest01")
+    this.createObstacle(21,.6, "forest01")
+     this.createObstacle(17,-1, "forest01")
+    this.createObstacle(21,-1, "forest01")
+
+     this.createObstacle(17,12.5, "forest02")
+    this.createObstacle(21,12.5, "forest02")
+     this.createObstacle(17,15, "forest02")
+    this.createObstacle(21,15, "forest02")
 
     this.villagers = this.physics.add.group({ immovable: true });
 
@@ -144,13 +156,21 @@ export class HomeScene extends Phaser.Scene {
     }
   }
 
-  createObstacle(tileX, tileY, texture, tileWidth = 1, tileHeight = 1) {
+ createObstacle(tileX, tileY, texture, tileWidth = 1, tileHeight = 1) {
+    // Make forest01 and forest02 obstacles 3x larger visually and in walkable blocking
+    const isForest = texture === "forest01" || texture === "forest02";
+    const tileSize = this.tileSize;
+
+    const effectiveTileWidth = isForest ? tileWidth * 6 : tileWidth;
+    const effectiveTileHeight = isForest ? tileHeight * 6 : tileHeight;
+
     this.add
-      .image(tileX * this.tileSize, tileY * this.tileSize, texture)
+      .image(tileX * tileSize, tileY * tileSize, texture)
       .setOrigin(0)
-      .setDisplaySize(tileWidth * this.tileSize, tileHeight * this.tileSize);
-    for (let y = Math.floor(tileY); y < Math.floor(tileY + tileHeight); y++) {
-      for (let x = Math.floor(tileX); x < Math.floor(tileX + tileWidth); x++) {
+      .setDisplaySize(effectiveTileWidth * tileSize, effectiveTileHeight * tileSize);
+
+    for (let y = Math.floor(tileY); y < Math.floor(tileY + effectiveTileHeight); y++) {
+      for (let x = Math.floor(tileX); x < Math.floor(tileX + effectiveTileWidth); x++) {
         if (this.walkableGrid[y]) {
           this.walkableGrid[y][x] = false;
         }
