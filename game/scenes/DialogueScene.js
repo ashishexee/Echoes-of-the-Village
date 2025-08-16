@@ -19,7 +19,7 @@ export class DialogueScene extends Phaser.Scene {
     const cornerRadius = 30;
 
     const maskShape = this.make.graphics();
-    maskShape.fillStyle(0xffff00);
+    maskShape.fillStyle(0xd4af37);
     maskShape.fillRoundedRect(framePadding, framePadding, frameWidth, frameHeight, cornerRadius);
     this.cameras.main.setMask(maskShape.createGeometryMask());
 
@@ -27,7 +27,7 @@ export class DialogueScene extends Phaser.Scene {
     frame.lineStyle(10, 0xd4af37, 1);
     frame.strokeRoundedRect(framePadding, framePadding, frameWidth, frameHeight, cornerRadius);
     frame.setDepth(100);
-        this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.7).setOrigin(0);
+        this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0xd4af37, 0.7).setOrigin(0);
         const panelWidth = this.cameras.main.width * 0.9;
         const panelHeight = this.cameras.main.height * 0.8;
         const panelX = this.cameras.main.centerX;
@@ -36,20 +36,20 @@ export class DialogueScene extends Phaser.Scene {
         this.add.graphics()
             .fillStyle(0x1a1a1a, 1)
             .fillRoundedRect(panelX - panelWidth / 2, panelY - panelHeight / 2, panelWidth, panelHeight, 16)
-            .lineStyle(2, 0xeeeeee, 1)
+            .lineStyle(2, 0xd4af37, 1)
             .strokeRoundedRect(panelX - panelWidth / 2, panelY - panelHeight / 2, panelWidth, panelHeight, 16);
 
         this.createLeftPanel(panelX, panelY, panelWidth, panelHeight);
         this.createRightPanel(panelX, panelY, panelWidth, panelHeight);
 
-        this.add.text(panelX, panelY + panelHeight / 2 - 20, 'Press ESC to close', {
+        this.add.text(panelX, panelY + panelHeight / 2 - 20, 'Press ENTER to close', {
             fontFamily: 'Arial',
             fontSize: '16px',
             color: '#aaaaaa',
             fontStyle: 'italic'
         }).setOrigin(0.5);
 
-        this.input.keyboard.on('keydown-ESC', () => {
+        this.input.keyboard.on('keydown-ENTER', () => {
             this.scene.stop();
             this.scene.resume('HomeScene');
         });

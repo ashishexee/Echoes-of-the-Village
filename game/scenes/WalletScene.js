@@ -120,6 +120,7 @@ export class WalletScene extends Phaser.Scene {
     skipText.on("pointerover", () => skipText.setColor("#ffffff"));
     skipText.on("pointerout", () => skipText.setColor("#aaaaaa"));
     skipText.on("pointerdown", () => this.scene.start("LoadingScene", { nextScene: 'HomeScene' }));
+    
   }
 
   createButton(x, y, text, callback) {
@@ -226,6 +227,9 @@ export class WalletScene extends Phaser.Scene {
   }
 
   async connectWallet() {
+    if (!this.scale.isFullscreen) {
+      this.scale.startFullscreen();
+    }
     try {
       if (window.ethereum) {
         const accounts = await window.ethereum.request({
