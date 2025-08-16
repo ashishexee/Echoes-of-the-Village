@@ -13,6 +13,20 @@ export class DialogueScene extends Phaser.Scene {
     }
 
     create() {
+         const framePadding = 20;
+    const frameWidth = this.cameras.main.width - framePadding * 2;
+    const frameHeight = this.cameras.main.height - framePadding * 2;
+    const cornerRadius = 30;
+
+    const maskShape = this.make.graphics();
+    maskShape.fillStyle(0xffff00);
+    maskShape.fillRoundedRect(framePadding, framePadding, frameWidth, frameHeight, cornerRadius);
+    this.cameras.main.setMask(maskShape.createGeometryMask());
+
+    const frame = this.add.graphics();
+    frame.lineStyle(10, 0xd4af37, 1);
+    frame.strokeRoundedRect(framePadding, framePadding, frameWidth, frameHeight, cornerRadius);
+    frame.setDepth(100);
         this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.7).setOrigin(0);
         const panelWidth = this.cameras.main.width * 0.9;
         const panelHeight = this.cameras.main.height * 0.8;
