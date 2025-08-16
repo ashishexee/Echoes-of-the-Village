@@ -57,6 +57,7 @@ export class LoadingScene extends Phaser.Scene {
     this.load.image("house02", "/assets/images/world/house02.png");
     this.load.image("house03", "/assets/images/world/house03.png");
     this.load.image("house04", "/assets/images/world/house04.png");
+    this.load.image("house05", "/assets/images/world/house05.png");
     this.load.image("tree01", "/assets/images/world/tree02.png");
     this.load.image("tree02", "/assets/images/world/tree03.png");
     this.load.image("flower01", "/assets/images/world/flowers01.png");
@@ -64,14 +65,14 @@ export class LoadingScene extends Phaser.Scene {
     this.load.image("flower03" , "/assets/images/world/flowers03.png");
     this.load.image("path", "/assets/images/world/path.png");
     this.load.image("path_rounded" , "/assets/images/world/path_rounded.png");
-    this.load.image("background", "assets/images/world/background.png");
+    this.load.image("background", "assets/images/world/background02.png");
     this.load.image("windmill", "assets/images/world/windmill.png");
     this.load.image("farmhouse", "assets/images/world/farmhouse.png");
-    this.load.image("lake01" , "/assets/images/world/lake01.png");
-    this.load.image("lake03" , "/assets/images/world/lake03.png");
-    this.load.image("church01" , "/assets/images/world/church02.png");
+    this.load.image("lake01" , "/assets/images/world/lake04.png");
+    this.load.image("lake02" , "/assets/images/world/lake05.png");
+    this.load.image("church01" , "/assets/images/world/church03.png");
     this.load.image("crop01" , "/assets/images/world/crop01.png");
-    this.load.image("forest01", "/assets/images/world/forest01.png");
+    this.load.image("forest01", "/assets/images/world/forest03.png");
     this.load.image("forest02", "/assets/images/world/forest02.png");
     this.load.image("player", "/assets/images/characters/mc.png");
     this.load.image("crop02" , "/assets/images/world/crop02.png");
@@ -81,6 +82,7 @@ export class LoadingScene extends Phaser.Scene {
     this.load.image("villager02", "assets/images/characters/villager02.png");
     this.load.image("villager03", "assets/images/characters/villager03.png");
     this.load.image("villager04", "assets/images/characters/villager04.png");
+    this.load.image("well01", "assets/images/world/well02.png");
 
     this.load.audio("background_music", "/assets/music/background_audio.mp3");
     this.load.audio("villager_accept", "/assets/music/villager_accept.ogg");

@@ -8,6 +8,7 @@ export class HomeScene extends Phaser.Scene {
     this.cursors = null;
     this.wasd = null;
     this.walkableGrid = [];
+    this.occupiedGrid = [];
     this.tileSize = 32;
     this.villagers = null;
     this.nearbyVillager = null;
@@ -24,7 +25,7 @@ export class HomeScene extends Phaser.Scene {
     }
 
     this.lights.enable();
-    this.lights.setAmbientColor(0x202040);
+    this.lights.setAmbientColor(0x101020);
 
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
@@ -33,13 +34,15 @@ export class HomeScene extends Phaser.Scene {
 
     for (let y = 0; y < tilesY; y++) {
       this.walkableGrid[y] = [];
+      this.occupiedGrid[y] = []; // Initialize occupied grid
       for (let x = 0; x < tilesX; x++) {
         this.walkableGrid[y][x] = false;
+        this.occupiedGrid[y][x] = false; // All tiles are initially unoccupied
         this.add
           .image(x * this.tileSize, y * this.tileSize, "background")
           .setOrigin(0)
           .setDisplaySize(this.tileSize, this.tileSize)
-          .setPipeline('Light2D');
+          .setPipeline("Light2D");
       }
     }
 
@@ -58,7 +61,7 @@ export class HomeScene extends Phaser.Scene {
       { x: 22, y: 8, width: 1, height: 6 },
       { x: 27, y: 6, width: 1, height: 6 },
       { x: 34, y: 8, width: 1, height: 9 },
-      { x: 34, y: 16, width: 3, height: 1 },
+      { x: 34, y: 16, width: 14, height: 1 },
       { x: 40, y: 3, width: 1, height: 11 },
       { x: 38, y: 3, width: 3, height: 1 },
       { x: 16, y: 5, width: 1, height: 13 },
@@ -70,6 +73,7 @@ export class HomeScene extends Phaser.Scene {
         for (let y = path.y; y < path.y + path.height; y++) {
           if (this.walkableGrid[y] && this.walkableGrid[y][x] !== undefined) {
             this.walkableGrid[y][x] = true;
+            this.occupiedGrid[y][x] = true; // Mark path tiles as occupied
           }
         }
       }
@@ -78,19 +82,24 @@ export class HomeScene extends Phaser.Scene {
     for (let y = 0; y < tilesY; y++) {
       for (let x = 0; x < tilesX; x++) {
         if (this.walkableGrid[y][x]) {
-          const up = (this.walkableGrid[y - 1] && this.walkableGrid[y - 1][x]) || false;
-          const down = (this.walkableGrid[y + 1] && this.walkableGrid[y + 1][x]) || false;
-          const left = (this.walkableGrid[y] && this.walkableGrid[y][x - 1]) || false;
-          const right = (this.walkableGrid[y] && this.walkableGrid[y][x + 1]) || false;
-          const neighborCount = Number(up) + Number(down) + Number(left) + Number(right);
+          const up =
+            (this.walkableGrid[y - 1] && this.walkableGrid[y - 1][x]) || false;
+          const down =
+            (this.walkableGrid[y + 1] && this.walkableGrid[y + 1][x]) || false;
+          const left =
+            (this.walkableGrid[y] && this.walkableGrid[y][x - 1]) || false;
+          const right =
+            (this.walkableGrid[y] && this.walkableGrid[y][x + 1]) || false;
+          const neighborCount =
+            Number(up) + Number(down) + Number(left) + Number(right);
 
           const pixelX = x * this.tileSize + this.tileSize / 2;
           const pixelY = y * this.tileSize + this.tileSize / 2;
-          let tileTexture = 'path';
+          let tileTexture = "path";
           let angle = 0;
 
           if (neighborCount <= 1) {
-            tileTexture = 'path_rounded';
+            tileTexture = "path_rounded";
             if (up) angle = 180;
             else if (left) angle = -90;
             else if (right) angle = 90;
@@ -98,20 +107,20 @@ export class HomeScene extends Phaser.Scene {
             if (up && down) {
               angle = 90;
             } else if (!(left && right)) {
-              tileTexture = 'path';
+              tileTexture = "path";
               if (down && right) angle = 0;
               else if (down && left) angle = 90;
               else if (up && left) angle = 180;
               else if (up && right) angle = -90;
             }
           }
-          
+
           this.add
             .image(pixelX, pixelY, tileTexture)
             .setOrigin(0.5)
             .setDisplaySize(this.tileSize, this.tileSize)
             .setAngle(angle)
-            .setPipeline('Light2D');
+            .setPipeline("Light2D");
         }
       }
     }
@@ -123,45 +132,38 @@ export class HomeScene extends Phaser.Scene {
     this.createBuilding(13, 0, "house01", 4, 4);
     this.createBuilding(0.5, 12, "house02", 4, 4);
     this.createBuilding(17.4, 10, "house02", 4, 4);
-    this.createBuilding(11.5, 14.7, "house02", 4, 4);
+    this.createObstacle(10.7, 11.3, "house05", 6, 6);
+    this.createObstacle(12.2, 16.6, "crop02", 3, 3);
     this.createBuilding(11, 6, "house02", 5, 5);
     this.createBuilding(30, 10, "house02", 4, 4);
     this.createBuilding(30, 13.5, "house01", 4, 4);
-    this.createBuilding(27, 1.5, "church01", 4, 4);
-    this.createBuilding(34, 1, "windmill", 4, 4);
+    this.createBuilding(36.53, 15.2, "house01", 4, 4);
+    this.createBuilding(38.53, 14.6, "house05", 5, 5);
+    this.createBuilding(41.53, 15.2, "house02", 4, 4);
+    this.createBuilding(43.53, 14.6, "house05", 5, 5);
+    this.createBuilding(26.1, 0.2, "church01", 6.2, 6.2);
+    this.createBuilding(34, 0.6, "windmill", 4.3, 4.3);
+    this.createObstacle(34.3, 3.1, "lake02", 5.7, 5.7);
+    this.createObstacle(23, 9.8, "well01", 4, 4);
+    this.createObstacle(36, 14.56, "forest01", 2, 2);
+    this.createObstacle(31, 14.56, "forest01", 2, 2);
+    this.createObstacle(4.3, 11, "lake01", 6, 6);
 
     // Trees
     this.createObstacle(2, 6.5, "tree01", 4, 4);
-    this.createObstacle(3, 6.5, "tree01", 4, 4);
-    this.createObstacle(4, 6.5, "tree01", 4, 4);
+    this.createObstacle(3.5, 6.5, "tree01", 4, 4);
     this.createObstacle(5, 6.5, "tree01", 4, 4);
-    this.createObstacle(6, 6.5, "tree01", 4, 4);
+    this.createObstacle(6.5, 6.5, "tree01", 4, 4);
+    this.createObstacle(8, 6.5, "tree01", 4, 4);
     this.createObstacle(10.4, 1.48, "tree05", 2, 3);
+    this.createObstacle(29.4, 0.2, "tree05", 2, 3);
+    this.createObstacle(31.4, 0.2, "tree05", 2, 3);
+    this.createObstacle(33.4, 0.2, "tree05", 2, 3);
     this.createObstacle(31, 4, "tree01", 4, 4);
 
-    // Flowers
-    this.createObstacle(19, 4, "flower01", 1, 1);
-    this.createObstacle(41, 2, "flower01", 1, 1);
-    this.createObstacle(9, 13, "flower01", 1, 1);
-    this.createObstacle(38, 9, "flower01", 1, 1);
-    this.createObstacle(14, 4, "flower01", 1, 1);
-    this.createObstacle(11, 3, "flower02", 1, 1);
-    this.createObstacle(26, 16, "flower02", 1, 1);
-    this.createObstacle(33, 6, "flower02", 1, 1);
-    this.createObstacle(22, 15, "flower02", 1, 1);
-    this.createObstacle(3, 9, "flower02", 1, 1);
-    this.createObstacle(9.47, 5.8, "flower02", 2, 2);
-    this.createObstacle(10.47, 5.8, "flower02", 2, 2);
-    this.createObstacle(9.47, 6.8, "flower02", 2, 2);
-    this.createObstacle(10.47, 6.8, "flower02", 2, 2);
-    this.createObstacle(9.47, 7.8, "flower03", 2, 2);
-    this.createObstacle(10.47, 7.8, "flower03", 2, 2);
-    this.createObstacle(9.47, 8.8, "flower03", 2, 2);
-    this.createObstacle(10.47, 8.8, "flower03", 2, 2);
-
     //Farmhouse
-    this.createObstacle(41.3,0.7, "farmhouse",3,3);
-     this.createObstacle(44.3,0.7, "farmhouse",3,3);
+    this.createObstacle(41.3, 0.7, "farmhouse", 3, 3);
+    this.createObstacle(44.3, 0.7, "farmhouse", 3, 3);
 
     //Crops
     this.createObstacle(42, 3.6, "crop02", 2, 2);
@@ -169,33 +171,45 @@ export class HomeScene extends Phaser.Scene {
     this.createObstacle(42, 7.6, "crop02", 2, 2);
     this.createObstacle(42, 9.6, "crop03", 2, 2);
     this.createObstacle(42, 11.6, "crop02", 2, 2);
-     this.createObstacle(44.5, 3.6, "crop03", 2, 2);
+    this.createObstacle(44.5, 3.6, "crop03", 2, 2);
     this.createObstacle(44.5, 5.6, "crop02", 2, 2);
     this.createObstacle(44.5, 7.6, "crop03", 2, 2);
     this.createObstacle(44.5, 9.6, "crop02", 2, 2);
     this.createObstacle(44.5, 11.6, "crop03", 2, 2);
 
     // Forests
-    this.createObstacle(17, 2.2, "forest01", 1, 1);
-    this.createObstacle(21, 2.2, "forest01", 1, 1);
-    this.createObstacle(17, 3.8, "forest01", 1, 1);
-    this.createObstacle(21, 3.8, "forest01", 1, 1);
-    this.createObstacle(17, 0.6, "forest01", 1, 1);
-    this.createObstacle(21, 0.6, "forest01", 1, 1);
-    this.createObstacle(17, -1, "forest01", 1, 1);
-    this.createObstacle(21, -1, "forest01", 1, 1);
-    this.createObstacle(38, 17, "forest01", 1, 1);
-    this.createObstacle(41, 17, "forest01", 1, 1);
-    this.createObstacle(38, 19, "forest01", 1, 1);
-    this.createObstacle(41, 19, "forest01", 1, 1);
-    this.createObstacle(17, 12.5, "forest02", 1, 1);
-    this.createObstacle(21, 12.5, "forest02", 1, 1);
-    this.createObstacle(17, 15, "forest02", 1, 1);
-    this.createObstacle(21, 15, "forest02", 1, 1);
+    this.createBuilding(20.43, 3.5, "house01", 4, 4);
 
-    // Lakes
-    this.createObstacle(35, 15, "lake01", 4, 4);
-    this.createObstacle(25, 18, "lake03", 4, 4);
+    // Additional crops around the house
+    this.createObstacle(18.5, 3.6, "crop02", 2, 2); // left-top
+    this.createObstacle(18.5, 5.8, "crop03", 2, 2); // left-bottom
+    this.createObstacle(24.2, 3.6, "crop03", 2, 2); // right-top
+    this.createObstacle(24.2, 5.8, "crop02", 2, 2); // right-bottom
+    this.createObstacle(18.15, 1.2, "crop02", 2, 2); // bottom-left
+    this.createObstacle(20.15, 1.2, "crop03", 2, 2);
+    this.createObstacle(22.15, 1.2, "crop02", 2, 2); // bottom-left
+    this.createObstacle(24.15, 1.2, "crop03", 2, 2);
+
+    // Randomly place flowers on green spaces
+    const flowerTypes = ["flower01", "flower02", "flower03"];
+    const greenSpaces = [];
+    for (let y = 0; y < tilesY; y++) {
+      for (let x = 0; x < tilesX; x++) {
+        if (!this.occupiedGrid[y][x]) {
+          greenSpaces.push({ x, y });
+        }
+      }
+    }
+
+    const numberOfFlowers = 50; // Adjust this number as needed
+    for (let i = 0; i < numberOfFlowers; i++) {
+      if (greenSpaces.length > 0) {
+        const randomIndex = Phaser.Math.Between(0, greenSpaces.length - 1);
+        const position = greenSpaces.splice(randomIndex, 1)[0];
+        const flowerType = Phaser.Math.RND.pick(flowerTypes);
+        this.createObstacle(position.x, position.y, flowerType, 1, 1);
+      }
+    }
 
     // Villagers
     this.villagers = this.physics.add.group({ immovable: true });
@@ -204,16 +218,13 @@ export class HomeScene extends Phaser.Scene {
     this.createVillager(12, 16, "villager03", 0.069);
     this.createVillager(20, 20, "villager04", 0.069);
     this.createVillager(6, 3, "villager03", 0.069);
-    this.createVillager(7, 10, "villager02", 0.069);
-    this.createVillager(17, 8, "villager02", 0.069);
-    this.createVillager(11, 17, "villager03", 0.069);
-    this.createVillager(21, 20, "villager04", 0.069);
-    this.createVillager(5, 3, "villager03", 0.069);
+    this.createObstacle(6, 2.7, "crop02", 2, 2);
+    this.createObstacle(6, 0.3, "crop03", 2, 2);
     this.createVillager(26, 10, "villager02", 0.069);
     this.createVillager(35, 7, "villager03", 0.089);
     this.createVillager(15, 13, "villager04", 0.069);
 
-    this.createPlayer(1, 9);
+    this.createPlayer(1, 4.5);
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys("W,S,A,D");
@@ -234,36 +245,36 @@ export class HomeScene extends Phaser.Scene {
       .setVisible(false);
 
     this.time.addEvent({
-        delay: Phaser.Math.Between(8000, 20000),
-        callback: this.triggerLightning,
-        callbackScope: this,
-        loop: true
+      delay: Phaser.Math.Between(8000, 20000),
+      callback: this.triggerLightning,
+      callbackScope: this,
+      loop: true,
     });
   }
 
-  triggerLightning() {
-    const lightning = this.lights.addLight(
-        Phaser.Math.Between(0, this.cameras.main.width), 
-        Phaser.Math.Between(0, this.cameras.main.height), 
-        800
-    ).setColor(0xffffff).setIntensity(3.0);
+  // triggerLightning() {
+  //   const lightning = this.lights.addLight(
+  //       Phaser.Math.Between(0, this.cameras.main.width),
+  //       Phaser.Math.Between(0, this.cameras.main.height),
+  //       800
+  //   ).setColor(0xffffff).setIntensity(3.0);
 
-    this.tweens.add({
-        targets: lightning,
-        intensity: 0,
-        duration: 250,
-        ease: 'Cubic.easeIn',
-        onComplete: () => {
-            this.lights.removeLight(lightning);
-        }
-    });
+  //   this.tweens.add({
+  //       targets: lightning,
+  //       intensity: 0,
+  //       duration: 250,
+  //       ease: 'Cubic.easeIn',
+  //       onComplete: () => {
+  //           this.lights.removeLight(lightning);
+  //       }
+  //   });
 
-    this.time.delayedCall(Phaser.Math.Between(200, 800), () => {
-        this.sound.play('thunder', { volume: 0.6 });
-    });
+  //   this.time.delayedCall(Phaser.Math.Between(200, 800), () => {
+  //       this.sound.play('thunder', { volume: 0.6 });
+  //   });
 
-    this.cameras.main.flash(100, 255, 255, 255);
-  }
+  //   this.cameras.main.flash(100, 255, 255, 255);
+  // }
 
   isWalkableAt(worldX, worldY) {
     const tileX = Math.floor(worldX / this.tileSize);
@@ -281,11 +292,14 @@ export class HomeScene extends Phaser.Scene {
       .image(pixelX, pixelY, texture)
       .setOrigin(0)
       .setDisplaySize(tileWidth * this.tileSize, tileHeight * this.tileSize)
-      .setPipeline('Light2D');
+      .setPipeline("Light2D");
     for (let y = Math.floor(tileY); y < Math.floor(tileY + tileHeight); y++) {
       for (let x = Math.floor(tileX); x < Math.floor(tileX + tileWidth); x++) {
         if (this.walkableGrid[y]) {
           this.walkableGrid[y][x] = false;
+        }
+        if (this.occupiedGrid[y]) {
+          this.occupiedGrid[y][x] = true;
         }
       }
     }
@@ -305,9 +319,23 @@ export class HomeScene extends Phaser.Scene {
         effectiveTileWidth * tileSize,
         effectiveTileHeight * tileSize
       )
-      .setPipeline('Light2D');
+      .setPipeline("Light2D");
 
-    // Intentionally do not modify walkableGrid here so the player can move through obstacles.
+    for (
+      let y = Math.floor(tileY);
+      y < Math.floor(tileY + effectiveTileHeight);
+      y++
+    ) {
+      for (
+        let x = Math.floor(tileX);
+        x < Math.floor(tileX + effectiveTileWidth);
+        x++
+      ) {
+        if (this.occupiedGrid[y]) {
+          this.occupiedGrid[y][x] = true;
+        }
+      }
+    }
   }
 
   createLake(tileX, tileY, texture, tileWidth = 10, tileHeight = 10) {
@@ -320,7 +348,11 @@ export class HomeScene extends Phaser.Scene {
       tileY * this.tileSize + 16,
       name
     );
-    villager.setOrigin(0.5).setDisplaySize(32, 32).setScale(scaleSize).setPipeline('Light2D');
+    villager
+      .setOrigin(0.5)
+      .setDisplaySize(32, 32)
+      .setScale(scaleSize)
+      .setPipeline("Light2D");
   }
 
   createPlayer(tileX, tileY) {
@@ -330,12 +362,15 @@ export class HomeScene extends Phaser.Scene {
       .sprite(pixelX, pixelY, "player")
       .setOrigin(0.5)
       .setDisplaySize(this.tileSize, this.tileSize)
-      .setScale(0.089)
-      .setPipeline('Light2D');
+      .setScale(0.12)
+      .setPipeline("Light2D");
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(10);
 
-    this.playerLight = this.lights.addLight(pixelX, pixelY, 250).setColor(0xaaccff).setIntensity(2.0);
+    this.playerLight = this.lights
+      .addLight(pixelX, pixelY, 250)
+      .setColor(0xaaccff)
+      .setIntensity(2.0);
   }
 
   handleInteraction() {
@@ -378,8 +413,8 @@ export class HomeScene extends Phaser.Scene {
     if (!this.player) return;
 
     if (this.playerLight) {
-        this.playerLight.x = this.player.x;
-        this.playerLight.y = this.player.y;
+      this.playerLight.x = this.player.x;
+      this.playerLight.y = this.player.y;
     }
 
     const speed = 110;
