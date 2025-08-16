@@ -18,6 +18,20 @@ export class WalletScene extends Phaser.Scene {
   }
 
   create() {
+      const framePadding = 20;
+    const frameWidth = this.cameras.main.width - framePadding * 2;
+    const frameHeight = this.cameras.main.height - framePadding * 2;
+    const cornerRadius = 30;
+
+    const maskShape = this.make.graphics();
+    maskShape.fillStyle(0xffff00);
+    maskShape.fillRoundedRect(framePadding, framePadding, frameWidth, frameHeight, cornerRadius);
+    this.cameras.main.setMask(maskShape.createGeometryMask());
+
+    const frame = this.add.graphics();
+    frame.lineStyle(10, 0xd4af37, 1);
+    frame.strokeRoundedRect(framePadding, framePadding, frameWidth, frameHeight, cornerRadius);
+    frame.setDepth(100);
     const centerX = this.cameras.main.width / 2;
     const centerY = this.cameras.main.height / 2;
 
@@ -106,6 +120,7 @@ export class WalletScene extends Phaser.Scene {
     skipText.on("pointerover", () => skipText.setColor("#ffffff"));
     skipText.on("pointerout", () => skipText.setColor("#aaaaaa"));
     skipText.on("pointerdown", () => this.scene.start("LoadingScene", { nextScene: 'HomeScene' }));
+    
   }
 
   createButton(x, y, text, callback) {
@@ -212,6 +227,9 @@ export class WalletScene extends Phaser.Scene {
   }
 
   async connectWallet() {
+    if (!this.scale.isFullscreen) {
+      this.scale.startFullscreen();
+    }
     try {
       if (window.ethereum) {
         const accounts = await window.ethereum.request({

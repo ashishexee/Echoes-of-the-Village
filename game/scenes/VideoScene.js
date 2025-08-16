@@ -68,6 +68,20 @@ export class VideoScene extends Phaser.Scene {
     }
 
     playIntroVideo() {
+          const framePadding = 20;
+    const frameWidth = this.cameras.main.width - framePadding * 2;
+    const frameHeight = this.cameras.main.height - framePadding * 2;
+    const cornerRadius = 30;
+
+    const maskShape = this.make.graphics();
+    maskShape.fillStyle(0xffff00);
+    maskShape.fillRoundedRect(framePadding, framePadding, frameWidth, frameHeight, cornerRadius);
+    this.cameras.main.setMask(maskShape.createGeometryMask());
+
+    const frame = this.add.graphics();
+    frame.lineStyle(10, 0xd4af37, 1);
+    frame.strokeRoundedRect(framePadding, framePadding, frameWidth, frameHeight, cornerRadius);
+    frame.setDepth(100);
         const video = this.add.video(this.scale.width / 2, this.scale.height / 2, 'intro_video');
         video.setVolume(1);
         video.setMute(false);
