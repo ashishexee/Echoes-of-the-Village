@@ -96,7 +96,7 @@ export class LeaderboardScene extends Phaser.Scene {
 
         // Add key event
         this.input.keyboard.once('keydown-SPACE', () => {
-            this.scene.start('HomeScene');
+            this.scene.start('MenuScene');
         });
     }
 }
