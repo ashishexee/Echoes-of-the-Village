@@ -131,6 +131,27 @@ export class VideoScene extends Phaser.Scene {
             color: '#ffff00',
             fontFamily: 'Arial'
         }).setOrigin(0.5);
+
+        const skipButton = this.add.text(this.scale.width - 100, this.scale.height - 50, 'Skip >>', {
+            fontFamily: 'Arial',
+            fontSize: '20px',
+            color: '#ffffff',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            padding: { x: 8, y: 4 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(200);
+
+        const cleanupAndGoHome = () => {
+            window.speechSynthesis.cancel();
+            if (skipButton && skipButton.destroy) skipButton.destroy();
+            if (dialogueText && dialogueText.destroy) dialogueText.destroy();
+            if (speakerText && speakerText.destroy) speakerText.destroy();
+            this.startHomeScene();
+        };
+
+        skipButton.on('pointerdown', () => {
+            cleanupAndGoHome();
+        });
+
         const showNextLine = async () => {
             window.speechSynthesis.cancel();
             if (index >= dialogues.length) {
