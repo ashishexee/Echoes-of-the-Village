@@ -230,15 +230,52 @@ export class WalletScene extends Phaser.Scene {
     if (!this.scale.isFullscreen) {
       this.scale.startFullscreen();
     }
+
+    function getWallet() {
+      if (window.onechainWallet) return window.onechainWallet;
+      if (window.sui) return window.sui;
+      if (window.one) return window.one;
+      return null;
+    }
+
+    const wallet = getWallet();
+
+    if (!wallet) {
+      console.error("Wallet not found. Please install a compatible wallet.");
+      const centerX = this.cameras.main.width / 2;
+      this.add
+        .text(centerX, this.cameras.main.height / 2 + 150, "Wallet not found. Please install a compatible wallet.", {
+          fontFamily: "Arial",
+          fontSize: 16,
+          color: "#ff0000",
+          stroke: "#000000",
+          strokeThickness: 2,
+        })
+        .setOrigin(0.5);
+      return;
+    }
+
     try {
-      if (window.ethereum) {
-        const accounts = await window.ethereum.request({
-          method: "eth_requestAccounts",
-        });
-        console.log("Connected account:", accounts[0]);
-        this.scene.start("MenuScene", { account: accounts[0] });
+      if (typeof wallet.requestPermissions === "function") {
+        await wallet.requestPermissions();
+      } else if (typeof wallet.request === "function") {
+        await wallet.request({ method: "eth_requestAccounts" });
+      }
+
+      let accounts = [];
+      if (typeof wallet.getAccounts === "function") {
+        accounts = await wallet.getAccounts();
+      } else if (typeof wallet.request === "function") {
+        accounts = await wallet.request({ method: "eth_accounts" });
+      }
+
+      if (accounts && accounts.length > 0) {
+        const userAddress = accounts[0].address ? accounts[0].address : accounts[0];
+        console.log("Connected account:", userAddress);
+
+        this.scene.start("MenuScene", { account: userAddress });
       } else {
-        throw new Error("MetaMask not found. Please install MetaMask.");
+        throw new Error("No accounts found in the wallet.");
       }
     } catch (error) {
       console.error("Failed to connect wallet:", error);
