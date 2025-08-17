@@ -194,6 +194,7 @@ export class HomeScene extends Phaser.Scene {
     //Farmhouse
     this.createObstacle(41.3, 0.7, "farmhouse", 3, 3);
     this.createObstacle(44, 0.7, "farmhouse", 3, 3);
+    //dkejhte h ab
 
     //Crops
     this.createObstacle(12.2, 16, "crop02", 2.5, 2);
