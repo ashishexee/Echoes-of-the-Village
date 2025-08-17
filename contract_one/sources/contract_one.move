@@ -1,4 +1,4 @@
-module contract_onechain::contract_onechain {
+module contract_one::contract_one {
     use 0x2::table::{Self as table, Table};
 
     /***********************
@@ -17,7 +17,8 @@ module contract_onechain::contract_onechain {
             map: table::new(ctx),
             keys: vector::empty<address>(),
         };
-        transfer::transfer(scores, tx_context::sender(ctx));
+       transfer::share_object(scores);
+        
     }
 
     /// Register a user with score = 0
