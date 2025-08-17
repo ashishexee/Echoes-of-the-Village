@@ -155,65 +155,75 @@ export class HomeScene extends Phaser.Scene {
     }
 
     // Buildings
-    this.createBuilding(0, 0.5, "house01", 4, 4);
-    this.createBuilding(0, 16, "house01", 5, 5);
-    this.createBuilding(5, 16, "house01", 5, 5);
-    this.createBuilding(13, 0, "house01", 4, 4);
-    this.createBuilding(0.5, 12, "house02", 4, 4);
-    this.createBuilding(17.4, 10, "house02", 4, 4);
-    this.createObstacle(10.7, 11.3, "house05", 6, 6);
-    this.createObstacle(12.2, 16.6, "crop02", 3, 3);
+    this.createBuilding(0.5, 0.7, "house01", 4, 4);
+    this.createBuilding(5.5, 13.7, "house01", 5, 5);
+    this.createBuilding(14, 0.8, "house01", 4.5, 4.5);
+    this.createBuilding(2, 6.5, "house01", 4, 4);
+    this.createBuilding(17, 9, "house02", 5, 5);
+    this.createObstacle(10.4, 10.5, "house05", 6, 6);
     this.createBuilding(11, 6, "house02", 5, 5);
-    this.createBuilding(30, 10, "house02", 4, 4);
-    this.createBuilding(30, 13.5, "house01", 4, 4);
-    this.createBuilding(36.53, 15.2, "house01", 4, 4);
-    this.createBuilding(38.53, 14.6, "house05", 5, 5);
-    this.createBuilding(41.53, 15.2, "house02", 4, 4);
-    this.createBuilding(43.53, 14.6, "house05", 5, 5);
-    this.createBuilding(26.1, 0.2, "church01", 6.2, 6.2);
-    this.createBuilding(34, 0.6, "windmill", 4.3, 4.3);
-    this.createObstacle(34.3, 3.1, "lake02", 5.7, 5.7);
+    this.createBuilding(27.5 , 9, "house02", 4, 4);
+    this.createBuilding(30.6, 9, "house01", 4, 4);
+    this.createBuilding(35.7, 11.2, "house01", 4, 4);
+    this.createBuilding(27.6, 1.2, "church01", 7  , 7);
+    this.createBuilding(36, 3.28, "windmill", 4.3, 4.3);
+    this.createObstacle(37 , 0, "lake02", 5, 4);
     this.createObstacle(23, 9.8, "well01", 4, 4);
     this.createObstacle(36, 14.56, "forest01", 2, 2);
     this.createObstacle(31, 14.56, "forest01", 2, 2);
-    this.createObstacle(4.3, 11, "lake01", 6, 6);
+    this.createObstacle(0, 14.7, "forest01", 2, 2);
+    this.createObstacle(7, 16.3, "forest01", 2, 2);
+    this.createObstacle(-1, 14, "forest01", 2, 2);
+    this.createObstacle(37, 13, "forest01", 2, 2);
+    this.createObstacle(5.5, 10.6, "lake01", 5, 4.5);
 
     // Trees
-    this.createObstacle(2, 6.5, "tree01", 4, 4);
-    this.createObstacle(3.5, 6.5, "tree01", 4, 4);
-    this.createObstacle(5, 6.5, "tree01", 4, 4);
-    this.createObstacle(6.5, 6.5, "tree01", 4, 4);
-    this.createObstacle(8, 6.5, "tree01", 4, 4);
-    this.createObstacle(10.4, 1.48, "tree05", 2, 3);
-    this.createObstacle(29.4, 0.2, "tree05", 2, 3);
-    this.createObstacle(31.4, 0.2, "tree05", 2, 3);
-    this.createObstacle(33.4, 0.2, "tree05", 2, 3);
-    this.createObstacle(31, 4, "tree01", 4, 4);
+    this.createObstacle(5.3, 6.5, "tree01", 4, 4);
+    this.createObstacle(6.8, 6.5, "tree01", 4, 4);
+    this.createObstacle(8.3, 6.5, "tree01", 4, 4);
+    this.createObstacle(11.2, 1.58, "tree05", 2, 3);
+    this.createObstacle(12.4, 1.8, "tree05", 2, 3);
+    this.createObstacle(10, 1.8, "tree05", 2, 3);
+    this.createObstacle(26.4, 3, "tree05", 2, 3);
+    this.createObstacle(26.4, 0.6, "tree05", 2, 3);
+    this.createObstacle(28.4, 0.6, "tree05", 2, 3);
+    this.createObstacle(31.5, 0.6, "tree05", 2, 3);
+    this.createObstacle(33.5, 0.6, "tree05", 2, 3);
+    this.createObstacle(33.5, 3, "tree05", 2, 3);
+    this.createObstacle(35.5, 8, "tree01", 4, 4);
 
     //Farmhouse
     this.createObstacle(41.3, 0.7, "farmhouse", 3, 3);
-    this.createObstacle(44.3, 0.7, "farmhouse", 3, 3);
+    this.createObstacle(44, 0.7, "farmhouse", 3, 3);
 
     //Crops
-    this.createObstacle(42, 3.6, "crop02", 2, 2);
-    this.createObstacle(42, 5.6, "crop03", 2, 2);
-    this.createObstacle(42, 7.6, "crop02", 2, 2);
-    this.createObstacle(42, 9.6, "crop03", 2, 2);
-    this.createObstacle(42, 11.6, "crop02", 2, 2);
+    this.createObstacle(12.2, 16, "crop02", 2.5, 2);
+    this.createObstacle(12.2, 18.3, "crop03", 2.5, 2);
+    this.createObstacle(41.75, 3.6, "crop02", 2, 2);
+    this.createObstacle(1.5, 16.15, "crop02", 2.3, 2);
+    this.createObstacle(4.1, 16.15, "crop03", 2.2 , 2);
+    this.createObstacle(4.1, 14, "crop02", 2.2 , 2);
+    this.createObstacle(1.5, 14, "crop03", 2.2 , 2);
+    this.createObstacle(41.75, 5.6, "crop03", 2, 2);
+    this.createObstacle(41.75, 7.6, "crop02", 2, 2);
+    this.createObstacle(41.75, 9.6, "crop03", 2, 2);
+    this.createObstacle(41.75, 11.6, "crop02", 2, 2);
+    this.createObstacle(41.75, 13.6, "crop02", 2, 2);
     this.createObstacle(44.5, 3.6, "crop03", 2, 2);
     this.createObstacle(44.5, 5.6, "crop02", 2, 2);
     this.createObstacle(44.5, 7.6, "crop03", 2, 2);
     this.createObstacle(44.5, 9.6, "crop02", 2, 2);
     this.createObstacle(44.5, 11.6, "crop03", 2, 2);
+    this.createObstacle(44.5, 13.6, "crop02", 2, 2);
 
     // Forests
-    this.createBuilding(20.43, 3.5, "house01", 4, 4);
+    this.createBuilding(19.85, 3.2, "house01", 4.5, 4.5 );
 
     // Additional crops around the house
-    this.createObstacle(18.5, 3.6, "crop02", 2, 2); // left-top
-    this.createObstacle(18.5, 5.8, "crop03", 2, 2); // left-bottom
-    this.createObstacle(24.2, 3.6, "crop03", 2, 2); // right-top
-    this.createObstacle(24.2, 5.8, "crop02", 2, 2); // right-bottom
+    this.createObstacle(18.1, 3.4, "crop03", 2, 2); // left-top
+    this.createObstacle(18.1, 5.65, "crop02", 2, 2); // left-bottom
+    this.createObstacle(24.15, 3.4, "crop02", 2, 2);
+    this.createObstacle(24.15, 5.65, "crop03", 2, 2);
     this.createObstacle(18.15, 1.2, "crop02", 2, 2); // bottom-left
     this.createObstacle(20.15, 1.2, "crop03", 2, 2);
     this.createObstacle(22.15, 1.2, "crop02", 2, 2); // bottom-left
@@ -247,7 +257,6 @@ export class HomeScene extends Phaser.Scene {
     this.createVillager(12, 16, "villager03", 0.069);
     this.createVillager(20, 20, "villager04", 0.069);
     this.createVillager(6, 3, "villager03", 0.069);
-    this.createObstacle(6, 2.7, "crop02", 2, 2);
     this.createObstacle(6, 0.3, "crop03", 2, 2);
     this.createVillager(26, 10, "villager02", 0.069);
     this.createVillager(35, 7, "villager03", 0.089);

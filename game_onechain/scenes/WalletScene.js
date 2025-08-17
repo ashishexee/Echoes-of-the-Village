@@ -1,8 +1,12 @@
 import Phaser from "phaser";
+import { SuiClient } from '@mysten/sui/client';
+import { Transaction } from '@mysten/sui/transactions';
 
 export class WalletScene extends Phaser.Scene {
   constructor() {
     super({ key: "WalletScene" });
+    this.userAddress = null;
+    this.suiClient = null;
   }
 
   preload() {
@@ -18,7 +22,10 @@ export class WalletScene extends Phaser.Scene {
   }
 
   create() {
-      const framePadding = 20;
+    const ONECHAIN_TESTNET_URL = 'https://rpc-testnet.onelabs.cc:443';
+    this.suiClient = new SuiClient({ url: ONECHAIN_TESTNET_URL });
+
+    const framePadding = 20;
     const frameWidth = this.cameras.main.width - framePadding * 2;
     const frameHeight = this.cameras.main.height - framePadding * 2;
     const cornerRadius = 30;
@@ -43,10 +50,10 @@ export class WalletScene extends Phaser.Scene {
     const scaleY = this.scale.height / (bgVideo.height || this.scale.height);
     const scale = Math.min(scaleX, scaleY) * zoomOutFactor;
     bgVideo.setScale(scale).setScrollFactor(0).setOrigin(0.5);
-     bgVideo.setVolume(15);
-        bgVideo.isMuted(false);
-        bgVideo.setMute(false);
-        bgVideo.setActive(true);
+    bgVideo.setVolume(15);
+    bgVideo.isMuted(false);
+    bgVideo.setMute(false);
+    bgVideo.setActive(true);
     this.input.once(
       "pointerdown",
       () => {
@@ -104,9 +111,12 @@ export class WalletScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.createButton(centerX, centerY + 20, "Connect Wallet", () => {
-      this.connectWallet();
-    });
+    this.createButton(
+      centerX,
+      centerY + 20,
+      'Connect Wallet',
+      () => this.connectWallet()
+    );
 
     const skipText = this.add
       .text(centerX, centerY + 120, "[DEV] Skip and Play", {
@@ -120,7 +130,6 @@ export class WalletScene extends Phaser.Scene {
     skipText.on("pointerover", () => skipText.setColor("#ffffff"));
     skipText.on("pointerout", () => skipText.setColor("#aaaaaa"));
     skipText.on("pointerdown", () => this.scene.start("LoadingScene", { nextScene: 'HomeScene' }));
-    
   }
 
   createButton(x, y, text, callback) {
@@ -230,15 +239,54 @@ export class WalletScene extends Phaser.Scene {
     if (!this.scale.isFullscreen) {
       this.scale.startFullscreen();
     }
+
+    function getWallet() {
+      if (window.onechainWallet) return window.onechainWallet;
+      if (window.sui) return window.sui;
+      if (window.one) return window.one;
+      return null;
+    }
+
+    const wallet = getWallet();
+
+    if (!wallet) {
+      console.error("Wallet not found. Please install a compatible wallet.");
+      const centerX = this.cameras.main.width / 2;
+      this.add
+        .text(centerX, this.cameras.main.height / 2 + 150, "Wallet not found. Please install a compatible wallet.", {
+          fontFamily: "Arial",
+          fontSize: 16,
+          color: "#ff0000",
+          stroke: "#000000",
+          strokeThickness: 2,
+        })
+        .setOrigin(0.5);
+      return;
+    }
+
     try {
-      if (window.ethereum) {
-        const accounts = await window.ethereum.request({
-          method: "eth_requestAccounts",
-        });
-        console.log("Connected account:", accounts[0]);
-        this.scene.start("MenuScene", { account: accounts[0] });
+      if (typeof wallet.requestPermissions === "function") {
+        await wallet.requestPermissions();
+      } else if (typeof wallet.request === "function") {
+        await wallet.request({ method: "eth_requestAccounts" });
+      }
+
+      let accounts = [];
+      if (typeof wallet.getAccounts === "function") {
+        accounts = await wallet.getAccounts();
+      } else if (typeof wallet.request === "function") {
+        accounts = await wallet.request({ method: "eth_accounts" });
+      }
+
+      if (accounts && accounts.length > 0) {
+        const userAddress = accounts[0].address ? accounts[0].address : accounts[0];
+        console.log("Connected account:", userAddress);
+
+        this.userAddress = userAddress;
+        await this.registerUserInContract(wallet);
+
       } else {
-        throw new Error("MetaMask not found. Please install MetaMask.");
+        throw new Error("No accounts found in the wallet.");
       }
     } catch (error) {
       console.error("Failed to connect wallet:", error);
@@ -258,5 +306,86 @@ export class WalletScene extends Phaser.Scene {
         )
         .setOrigin(0.5);
     }
+  }
+
+  async findWalletProvider() {
+    if (window.onechainWallet) return window.onechainWallet;
+  }
+
+  async registerUserInContract(walletProvider) {
+    try {
+      const PACKAGE_ID = "0xf7fd6f8b100f786fcda885db47807a53af18562abc37485da97eab52ee85c6a9";
+      const MODULE_NAME = "contract_one";
+      const SCORES_OBJECT_ID = "0x8ecdcbfb483d5aae0a22ad90d2412c15fe102b62e1cb0cc3e9e6df05e23839b6";
+
+      const isRegistered = await this.checkIfUserRegistered();
+      
+      if (isRegistered) {
+        console.log("User already registered, proceeding to game...");
+        this.proceedToGame();
+        return;
+      }
+
+      const tx = new Transaction();
+      
+      tx.moveCall({
+        target: `${PACKAGE_ID}::${MODULE_NAME}::register_user`,
+        arguments: [
+          tx.object(SCORES_OBJECT_ID),
+          tx.pure.address(this.userAddress)
+        ],
+      });
+
+      const result = await walletProvider.signAndExecuteTransaction({
+        transaction: tx,
+      });
+
+      console.log("User registered successfully!", result);
+      
+      this.proceedToGame();
+
+    } catch (error) {
+      console.error("Registration failed:", error);
+      alert("Failed to register user: " + error.message);
+    }
+  }
+
+  async checkIfUserRegistered() {
+    try {
+      const PACKAGE_ID = "0xf7fd6f8b100f786fcda885db47807a53af18562abc37485da97eab52ee85c6a9";
+      const MODULE_NAME = "contract_one";
+      const SCORES_OBJECT_ID = "0x8ecdcbfb483d5aae0a22ad90d2412c15fe102b62e1cb0cc3e9e6df05e23839b6";
+
+      const tx = new Transaction();
+      tx.moveCall({
+        target: `${PACKAGE_ID}::${MODULE_NAME}::get_score`,
+        arguments: [
+          tx.object(SCORES_OBJECT_ID),
+          tx.pure.address(this.userAddress)
+        ],
+      });
+
+      const result = await this.suiClient.devInspectTransactionBlock({
+        sender: this.userAddress,
+        transactionBlock: tx,
+      });
+
+      if (result.effects.status.status === 'success') {
+        return true;
+      } else {
+        console.log("User not registered, proceeding with registration. Reason:", result.effects.status.error);
+        return false;
+      }
+    } catch (error) {
+      console.error("Error checking user registration:", error);
+      return false;
+    }
+  }
+
+  proceedToGame() {
+    this.scene.start('MenuScene', { 
+      account: this.userAddress,
+      suiClient: this.suiClient 
+    });
   }
 }

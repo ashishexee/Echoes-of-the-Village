@@ -1,5 +1,5 @@
 [package]
-name = "contract_onechain"
+name = "contract_one"
 edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) Move
 # license = ""           # e.g., "MIT", "GPL", "Apache 2.0"
 # authors = ["..."]      # e.g., ["Joe Smith (joesmith@noemail.com)", "John Snow (johnsnow@noemail.com)"]
@@ -19,7 +19,7 @@ One = { git = "https://github.com/one-chain-labs/onechain.git", subdir = "crates
 # Override = { local = "../conflicting/version", override = true }
 
 [addresses]
-contract_onechain = "0xdc8d8a31daf806ecd08d4b7228c30c3fcf6e9fb89a0efdf7e12e7f8e699b9069"
+contract_one = "0x0"
 
 # Named addresses will be accessible in Move as `@name`. They're also exported:
 # for example, `std = "0x1"` is exported by the Standard Library.
