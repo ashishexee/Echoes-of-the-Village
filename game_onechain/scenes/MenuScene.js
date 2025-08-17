@@ -1,4 +1,9 @@
 import Phaser from "phaser";
+import { Transaction } from '@mysten/sui/transactions';
+
+const PACKAGE_ID = "0xf7fd6f8b100f786fcda885db47807a53af18562abc37485da97eab52ee85c6a9";
+const MODULE_NAME = "contract_one";
+const SCORES_OBJECT_ID = "0x8ecdcbfb483d5aae0a22ad90d2412c15fe102b62e1cb0cc3e9e6df05e23839b6";
 
 export class MenuScene extends Phaser.Scene {
     constructor() {
@@ -8,12 +13,15 @@ export class MenuScene extends Phaser.Scene {
         this._genderOverlay = null;
         this.enterButton = null;
         this.leaderboardButton = null;
+        this.suiClient = null;
+        this.scoreText = null;
     }
 
     init(data) {
         if (data && data.account) {
             this.walletAddress = data.account;
         }
+        this.suiClient = data.suiClient;
     }
 
     preload() {
@@ -43,7 +51,6 @@ export class MenuScene extends Phaser.Scene {
     frame.setDepth(100);
         const { width, height } = this.scale;
 
-        // Add animated background
         const bgVideo = this.add.video(width / 2, height / 2, "bg_video");
         bgVideo.play(true);
         const zoomOutFactor = 0.45;
@@ -60,7 +67,6 @@ export class MenuScene extends Phaser.Scene {
             bgVideo.setMute(false);
         }, this);
 
-        // Add semi-transparent overlay and panel
         this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0);
 
         const panelWidth = 600;
@@ -86,13 +92,22 @@ export class MenuScene extends Phaser.Scene {
             }
         }).setOrigin(0.5);
 
-        // Enter Game opens gender selection modal
+        this.scoreText = this.add.text(width / 2, height / 2 - 80, 'Score: Loading...', {
+            fontFamily: 'Georgia, serif',
+            fontSize: '32px',
+            color: '#ffffff',
+            align: 'center',
+            shadow: { offsetX: 1, offsetY: 1, color: '#000', blur: 2 }
+        }).setOrigin(0.5);
+
+        this.fetchAndDisplayScore();
+
         this.enterButton = this.createButton(width / 2, height / 2, 'Enter Game', () => {
             this.showGenderSelection();
         });
 
         this.leaderboardButton = this.createButton(width / 2, height / 2 + 90, 'Leaderboard', () => {
-            this.scene.start('LeaderboardScene');
+            this.scene.start('LeaderboardScene', { suiClient: this.suiClient, account: this.walletAddress });
         });
 
         let footerText = 'Not Connected';
@@ -107,11 +122,49 @@ export class MenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
     }
 
+    async fetchAndDisplayScore() {
+        if (!this.suiClient || !this.walletAddress) {
+            this.scoreText.setText('Score: N/A');
+            return;
+        }
+
+        try {
+            const tx = new Transaction();
+            tx.moveCall({
+                target: `${PACKAGE_ID}::${MODULE_NAME}::get_score`,
+                arguments: [
+                    tx.object(SCORES_OBJECT_ID),
+                    tx.pure.address(this.walletAddress)
+                ],
+            });
+
+            const result = await this.suiClient.devInspectTransactionBlock({
+                sender: this.walletAddress,
+                transactionBlock: tx,
+            });
+
+            if (result.effects.status.status === 'success' && result.results && result.results[0].returnValues) {
+                const [bytes, type] = result.results[0].returnValues[0];
+                if (type === 'u64') {
+                    const dataView = new DataView(new Uint8Array(bytes).buffer);
+                    const score = dataView.getBigUint64(0, true); 
+                    this.scoreText.setText(`Score: ${score.toString()}`);
+                } else {
+                    throw new Error("Unexpected return type from get_score");
+                }
+            } else {
+                this.scoreText.setText('Score: error');
+            }
+        } catch (error) {
+            console.error("Failed to fetch score:", error);
+            this.scoreText.setText('Score: Error');
+        }
+    }
+
     showGenderSelection() {
         if (this._genderOverlay) return;
         const { width, height } = this.scale;
 
-        // dark blocker to prevent clicking underlying UI
         const blocker = this.add.rectangle(0, 0, width, height, 0x000000, 0.6).setOrigin(0).setInteractive();
 
         const panelW = 480;
@@ -131,23 +184,19 @@ export class MenuScene extends Phaser.Scene {
             color: '#ffffff'
         }).setOrigin(0.5);
 
-        // Male button
         const maleBtn = this.createButton(width / 2 - 110, height / 2 + 30, 'Male', () => {
             this.playerGender = 'Male';
             this.closeGenderSelectionAndStart();
         });
 
-        // Female button
         const femaleBtn = this.createButton(width / 2 + 110, height / 2 + 30, 'Female', () => {
             this.playerGender = 'Female';
             this.closeGenderSelectionAndStart();
         });
 
-        // Group overlay elements so we can destroy later
         this._genderOverlay = this.add.container(0, 0, [blocker, panel, title, maleBtn, femaleBtn]);
         this._genderOverlay.setDepth(1000);
 
-        // visually de-emphasize underlying buttons
         if (this.enterButton) this.enterButton.alpha = 0.5;
         if (this.leaderboardButton) this.leaderboardButton.alpha = 0.5;
     }
@@ -160,7 +209,6 @@ export class MenuScene extends Phaser.Scene {
         if (this.enterButton) this.enterButton.alpha = 1;
         if (this.leaderboardButton) this.leaderboardButton.alpha = 1;
 
-        // Forward gender to LoadingScene so LoadingScene / VideoScene can consume it
         this.scene.start('LoadingScene', { playerGender: this.playerGender, nextScene: 'VideoScene' });
     }
 
