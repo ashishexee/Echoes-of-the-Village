@@ -2,6 +2,7 @@
 # This script runs the FastAPI server, exposing the game engine through API endpoints.
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict
 import uuid
 import os
@@ -19,8 +20,15 @@ load_dotenv()
 
 # Initialize the FastAPI app and the Game Engine
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or ["*"] for all origins (not recommended for production)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # IMPORTANT: Get your API key from your environment or the .env file
-API_KEY = os.environ.get("GOOGLE_API_KEY", "YOUR_GOOGLE_API_KEY_HERE")
+API_KEY = os.environ.get("GOOGLE_API_KEY")
 game_engine: GameEngine
 active_games: Dict[str, GameState] = {}
 
@@ -91,6 +99,7 @@ async def interact(game_id: str, request: InteractRequest):
             raise HTTPException(status_code=400, detail="Invalid villager ID.")
             
         villager_name = game_state.villagers[villager_index]["name"]
+        print(villager_name)
 
         frustration = {"friends": len([msg for msg in game_state.full_npc_memory.get(villager_name, []) if "friend" in msg.get("content", "").lower()])}
         
