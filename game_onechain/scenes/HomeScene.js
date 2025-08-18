@@ -1,5 +1,4 @@
 import Phaser from "phaser";
-// Your API functions are already correctly imported.
 import { startNewGame, getConversation } from "../api";
 
 export class HomeScene extends Phaser.Scene {
@@ -17,27 +16,31 @@ export class HomeScene extends Phaser.Scene {
     this.enterKey = null;
     this.interactionText = null;
     this.villagerCounter = 1;
-    // CHANGE 1: Add a property to store the initial game data from the backend.
     this.gameData = null;
+    this.resetKey = null;
+    this.resetTimer = null;
+    this.initialPlayerPos = { x: 1, y: 4.5};
+    this.resetFeedbackText = null;
+  }
+
+  init(data) {
+    if (data && data.existingGameData) {
+      this.gameData = data.existingGameData;
+      console.log("Existing game data loaded:", this.gameData);
+    }
   }
 
   async create() {
     const loadingText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2, 'Creating a new mystery...', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
-    // Destructure the response from the API call.
     const { game_id, inaccessible_locations, villagers } = await startNewGame();
     loadingText.destroy();
     if (!game_id) {
       this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2, 'Error: Could not start a new game.\nPlease check the server and refresh.', { fontSize: '24px', fill: '#ff0000', align: 'center' }).setOrigin(0.5);
       return;
     }
-
-    // CHANGE 2: Store the received data as a scene property.
-    // This makes it accessible in other functions like initiateConversation.
     this.gameData = { game_id, inaccessible_locations, villagers };
     console.log("Game data initialized:", this.gameData);
 
-
-    // --- All of your detailed world-building code remains unchanged ---
     const framePadding = 25;
     const extraBottomSpace = 110;
     const frameWidth = this.cameras.main.width - framePadding * 2;
@@ -73,7 +76,6 @@ export class HomeScene extends Phaser.Scene {
       this.sound.play("background_music", { loop: true, volume: 0.2 });
     }
 
-    // Launch the UI Scene to display the timer
     if (!this.scene.isActive('UIScene')) {
         this.scene.launch('UIScene');
     }
@@ -127,7 +129,7 @@ export class HomeScene extends Phaser.Scene {
         for (let y = path.y; y < path.y + path.height; y++) {
           if (this.walkableGrid[y] && this.walkableGrid[y][x] !== undefined) {
             this.walkableGrid[y][x] = true;
-            this.occupiedGrid[y][x] = true; // Mark path tiles as occupied
+            this.occupiedGrid[y][x] = true;
           }
         }
       }
@@ -324,6 +326,9 @@ export class HomeScene extends Phaser.Scene {
       .setOrigin(0.5, 1)
       .setDepth(30)
       .setVisible(false);
+
+    // Set up the player reset functionality
+    this.setupResetPlayer();
   }
 
   isWalkableAt(worldX, worldY) {
@@ -411,6 +416,9 @@ export class HomeScene extends Phaser.Scene {
   createPlayer(tileX, tileY) {
     const pixelX = tileX * this.tileSize + this.tileSize / 2;
     const pixelY = tileY * this.tileSize + this.tileSize / 2;
+    // Store the initial position for the reset feature
+    this.initialPlayerPos = { x: pixelX, y: pixelY };
+    
     this.player = this.physics.add
       .sprite(pixelX, pixelY, "player")
       .setOrigin(0.5)
@@ -424,6 +432,39 @@ export class HomeScene extends Phaser.Scene {
       .addLight(pixelX, pixelY, 250)
       .setColor(0xaaccff)
       .setIntensity(2.0);
+  }
+
+  setupResetPlayer() {
+    this.resetKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+
+    this.resetFeedbackText = this.add.text(this.cameras.main.centerX, 50, '', {
+        fontFamily: 'Arial',
+        fontSize: '20px',
+        color: '#d4af37',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        padding: { x: 10, y: 5 }
+    }).setOrigin(0.5).setDepth(100).setVisible(false);
+
+    this.resetKey.on('down', () => {
+        this.resetFeedbackText.setText('Hold [R] for 1.5s to reset position...').setVisible(true);
+        // Start a timer to reset after 1.5 seconds
+        this.resetTimer = this.time.delayedCall(1500, () => {
+            this.player.setPosition(this.initialPlayerPos.x, this.initialPlayerPos.y);
+            this.resetFeedbackText.setText('Position has been reset!');
+            // Hide the message after another second
+            this.time.delayedCall(1000, () => {
+                this.resetFeedbackText.setVisible(false);
+            });
+        });
+    });
+
+    this.resetKey.on('up', () => {
+        // If the key is released before the timer completes, cancel the reset
+        if (this.resetTimer && this.resetTimer.getProgress() < 1) {
+            this.resetTimer.remove(false);
+            this.resetFeedbackText.setVisible(false);
+        }
+    });
   }
 
   handleInteraction() {
