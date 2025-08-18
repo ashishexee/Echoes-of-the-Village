@@ -358,11 +358,8 @@ export class WalletScene extends Phaser.Scene {
 
       const tx = new Transaction();
       tx.moveCall({
-        target: `${PACKAGE_ID}::${MODULE_NAME}::get_score`,
-        arguments: [
-          tx.object(SCORES_OBJECT_ID),
-          tx.pure.address(this.userAddress)
-        ],
+        target: `${PACKAGE_ID}::${MODULE_NAME}::get_leaderboard`,
+        arguments: [tx.object(SCORES_OBJECT_ID)],
       });
 
       const result = await this.suiClient.devInspectTransactionBlock({
@@ -370,16 +367,36 @@ export class WalletScene extends Phaser.Scene {
         transactionBlock: tx,
       });
 
-      if (result.effects.status.status === 'success') {
-        return true;
-      } else {
-        console.log("User not registered, proceeding with registration. Reason:", result.effects.status.error);
+      if (result.effects.status.status !== 'success' || !result.results?.[0]?.returnValues) {
+        console.error("Could not check registration status from leaderboard:", result.effects.status.error);
         return false;
       }
+
+      const [addressBytes] = result.results[0].returnValues[0];
+      const addresses = this.parseAddressVector(new Uint8Array(addressBytes));
+      
+      const isRegistered = addresses.some(addr => addr.toLowerCase() === this.userAddress.toLowerCase());
+      
+      console.log(`User registration check: ${isRegistered ? 'User is registered.' : 'User not found, proceeding to register.'}`);
+      return isRegistered;
+
     } catch (error) {
       console.error("Error checking user registration:", error);
       return false;
     }
+  }
+
+  parseAddressVector(bytes) {
+    const len = bytes[0];
+    const addresses = [];
+    let offset = 1;
+    const addressSize = 32;
+    for (let i = 0; i < len; i++) {
+        const addressBytes = bytes.slice(offset, offset + addressSize);
+        addresses.push('0x' + Array.from(addressBytes, byte => byte.toString(16).padStart(2, '0')).join(''));
+        offset += addressSize;
+    }
+    return addresses;
   }
 
   proceedToGame() {
