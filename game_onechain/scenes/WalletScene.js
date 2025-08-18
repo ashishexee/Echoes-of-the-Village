@@ -17,7 +17,7 @@ export class WalletScene extends Phaser.Scene {
       false,
       true
     );
-    this.load.audio("intro_music", "/assets/music/intro_music.MP3");
+    this.load.audio("intro_music", "assets/music/intro_music.MP3");
     this.load.image("gaming_frame", "assets/images/ui/gaming_frame.png");
   }
 
