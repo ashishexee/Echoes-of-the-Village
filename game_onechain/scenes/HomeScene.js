@@ -1,5 +1,8 @@
 import Phaser from "phaser";
 import { startNewGame, getConversation } from "../api";
+import { Transaction } from '@mysten/sui/transactions';
+
+const PACKAGE_ID = "0xf7fd6f8b100f786fcda885db47807a53af18562abc37485da97eab52ee85c6a9";
 
 export class HomeScene extends Phaser.Scene {
   constructor() {
@@ -15,12 +18,19 @@ export class HomeScene extends Phaser.Scene {
     this.nearbyVillager = null;
     this.enterKey = null;
     this.interactionText = null;
-    this.villagerCounter = 1;
     this.gameData = null;
     this.resetKey = null;
     this.resetTimer = null;
     this.initialPlayerPos = { x: 1, y: 4.5};
     this.resetFeedbackText = null;
+
+    // New properties for wallet, inventory, and minting
+    this.suiClient = null;
+    this.account = null;
+    this.playerInventory = new Set();
+    this.mintKey = null;
+    this.activeMintZone = null;
+    this.mintText = null;
   }
 
   init(data) {
@@ -28,6 +38,9 @@ export class HomeScene extends Phaser.Scene {
       this.gameData = data.existingGameData;
       console.log("Existing game data loaded:", this.gameData);
     }
+    // Receive wallet data from WalletScene/MenuScene
+    this.suiClient = data.suiClient;
+    this.account = data.account;
   }
 
   async create() {
@@ -40,6 +53,16 @@ export class HomeScene extends Phaser.Scene {
     }
     this.gameData = { game_id, inaccessible_locations, villagers };
     console.log("Game data initialized:", this.gameData);
+
+    // Listen for the unlock event from ItemLockScene
+    if (this.scene.get('ItemLockScene')) {
+        this.scene.get('ItemLockScene').events.on('villagerUnlocked', this.unlockVillager, this);
+    }
+
+    // Check wallet for existing items at the start of the game
+    if (this.account && this.suiClient) {
+        await this.updateInventory();
+    }
 
     const framePadding = 25;
     const extraBottomSpace = 110;
@@ -293,19 +316,63 @@ export class HomeScene extends Phaser.Scene {
     // --- Villagers Setup ---
     this.villagers = this.physics.add.group({ immovable: true });
 
-   this.createVillager(7, 9.5, "villager04", 0.069);
-    this.createVillager(15, 8, "villager02", 0.069);
-    this.createVillager(11, 16, "villager03", 0.069);
-    this.createVillager(17, 19.3, "villager04", 0.069);
-    this.createVillager(5, 3, "villager03", 0.069);
-    this.createVillager(21, 11.5, "villager03", 0.069);
+    // --- New Dynamic Item Logic ---
+    const ALL_POSSIBLE_ITEMS = [
+        "FISHING_ROD", "AXE", "SHOVEL", "LANTERN",
+        "PICKAXE", "HAMMER", "BUCKET", "SCYTHE"
+    ];
+
+    Phaser.Utils.Array.Shuffle(ALL_POSSIBLE_ITEMS);
+    const currentGameItems = ALL_POSSIBLE_ITEMS.slice(0, 4);
+    console.log("Items for this game session:", currentGameItems);
+ 
+     const villagerSpriteMap = {
+         "villager_0": { tileX: 7, tileY: 9.5, texture: "villager04", scale: 0.069 },
+         "villager_1": { tileX: 15, tileY: 8, texture: "villager02", scale: 0.069 },
+         "villager_2": { tileX: 11, tileY: 16, texture: "villager03", scale: 0.069 },
+         "villager_3": { tileX: 17, tileY: 19.3, texture: "villager04", scale: 0.069 },
+         "villager_4": { tileX: 5, tileY: 3, texture: "villager03", scale: 0.069 },
+         "villager_5": { tileX: 21, tileY: 11.5, texture: "villager03", scale: 0.069 },
+         "villager_6": { tileX: 24.8, tileY: 8.7, texture: "villager02", scale: 0.069 },
+         "villager_7": { tileX: 26.2, tileY: 5, texture: "villager04", scale: 0.060 },
+     };
+ 
+    // Assign required_item only among villagers that will be rendered.
+    (function assignLocks(gameData, spriteMap, unlockItems) {
+        const availableIds = gameData.villagers
+            .map(v => v.id)
+            .filter(id => !!spriteMap[id]); // only those with sprites
+ 
+        Phaser.Utils.Array.Shuffle(availableIds);
+ 
+        const countToLock = Math.min(4, availableIds.length, unlockItems.length);
+        const villagersToLock = availableIds.slice(0, countToLock);
+ 
+        gameData.villagers.forEach(villager => {
+            const lockIndex = villagersToLock.indexOf(villager.id);
+            villager.required_item = lockIndex !== -1 ? unlockItems[lockIndex] : null;
+        });
+ 
+        console.log("Locked villagers (id -> required_item):",
+            gameData.villagers.filter(v => v.required_item).map(v => ({ id: v.id, required_item: v.required_item }))
+        );
+    })(this.gameData, villagerSpriteMap, currentGameItems);
+ 
+     this.gameData.villagers.forEach(villagerData => {
+         const spriteInfo = villagerSpriteMap[villagerData.id];
+         if (spriteInfo) {
+             this.createVillager(
+                 spriteInfo.tileX,
+                 spriteInfo.tileY,
+                 spriteInfo.texture,
+                 spriteInfo.scale,
+                 villagerData.id,
+                 villagerData.required_item
+             );
+         }
+     });
+ 
     this.createObstacle(6, 0.3, "crop03", 2, 2);
-    this.createVillager(24.8, 8.7, "villager02", 0.069);
-    this.createVillager(26.2, 5, "villager04", 0.060);
-    this.createVillager(39, 2.5, "villager03", 0.069);
-    this.createVillager(40, 8, "villager02", 0.069);
-    this.createVillager(35, 16, "villager02", 0.069);
-    this.createVillager(15, 12.5, "villager04", 0.069);
 
     this.createPlayer(1, 4.5);
 
@@ -327,7 +394,44 @@ export class HomeScene extends Phaser.Scene {
       .setDepth(30)
       .setVisible(false);
 
-    // Set up the player reset functionality
+    // --- New Minting Setup ---
+    this.mintKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+    this.mintText = this.add.text(0, 0, 'Press M to mint', {
+        fontFamily: 'Arial', fontSize: '16px', color: '#ffffff',
+        backgroundColor: 'rgba(0,0,0,0.7)', padding: { x: 8, y: 4 }
+    }).setOrigin(0.5, 1).setDepth(30).setVisible(false);
+
+    this.events.on('resume', () => {
+        if (this.input && this.input.keyboard) {
+            this.input.keyboard.enabled = true;
+        }
+    });
+
+    // --- Dynamic Minting Zone Creation ---
+    const ALL_MINT_ZONES = {
+        'FISHING_ROD': { x: 5.5, y: 10.6, width: 100, height: 100 }, // By the lake
+        'AXE': { x: 36, y: 14.56, width: 80, height: 80 },       // In the forest
+        'SHOVEL': { x: 23, y: 9.8, width: 80, height: 80 },      // By the well
+        'LANTERN': { x: 27.6, y: 1.2, width: 100, height: 100 },   // At the church
+        'PICKAXE': { x: 34, y: 16.4, width: 80, height: 80 },      // Near the forge
+        'HAMMER': { x: 37, y: 3.28, width: 80, height: 80 },       // By the windmill
+        'BUCKET': { x: 21.5, y: 13.7, width: 80, height: 80 },     // At the market
+        'SCYTHE': { x: 41.75, y: 3.6, width: 80, height: 80 }      // In the fields
+    };
+
+    currentGameItems.forEach(itemName => {
+        const zoneData = ALL_MINT_ZONES[itemName];
+        if (zoneData) {
+            this.createMintingZone(
+                zoneData.x * this.tileSize,
+                zoneData.y * this.tileSize,
+                zoneData.width,
+                zoneData.height,
+                itemName
+            );
+        }
+    });
+
     this.setupResetPlayer();
   }
 
@@ -397,7 +501,7 @@ export class HomeScene extends Phaser.Scene {
     this.createObstacle(tileX, tileY, texture, tileWidth, tileHeight);
   }
 
-  createVillager(tileX, tileY, texture, scaleSize) {
+  createVillager(tileX, tileY, texture, scaleSize, id, requiredItem = null) {
     const villager = this.villagers.create(
       tileX * this.tileSize + 16,
       tileY * this.tileSize + 16,
@@ -409,8 +513,20 @@ export class HomeScene extends Phaser.Scene {
       .setScale(scaleSize)
       .setPipeline("Light2D");
 
-    villager.name = `villager_${this.villagerCounter}`;
-    this.villagerCounter++;
+    villager.name = id;
+    villager.requiredItem = requiredItem;
+
+    // Add a lock icon so locked villagers are visible in the world
+    if (requiredItem) {
+      const lockIcon = this.add.text(villager.x, villager.y - 25, '🔒', {
+        fontSize: '18px'
+      }).setOrigin(0.5).setDepth(31);
+      villager.lockIcon = lockIcon;
+      // hide initially if player already has the item
+      lockIcon.setVisible(!this.playerInventory.has(requiredItem));
+    } else {
+      villager.lockIcon = null;
+    }
   }
 
   createPlayer(tileX, tileY) {
@@ -487,6 +603,12 @@ export class HomeScene extends Phaser.Scene {
     this.nearbyVillager = closestVillager;
 
     if (this.nearbyVillager) {
+      if (this.nearbyVillager.requiredItem && !this.playerInventory.has(this.nearbyVillager.requiredItem)) {
+        const itemName = this.nearbyVillager.requiredItem.replace(/_/g, ' ');
+        this.interactionText.setText(`Requires: ${itemName}`);
+      } else {
+        this.interactionText.setText("Press ENTER to talk");
+      }
       this.interactionText.setVisible(true);
       this.interactionText.setPosition(
         this.nearbyVillager.x,
@@ -497,11 +619,23 @@ export class HomeScene extends Phaser.Scene {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.enterKey) && this.nearbyVillager) {
+      // If villager requires an item, always launch the ItemLockScene
+      if (this.nearbyVillager.requiredItem) {
+        this.scene.pause();
+        this.scene.launch('ItemLockScene', {
+          villager: this.nearbyVillager,
+          suiClient: this.suiClient,
+          account: this.account,
+          gameData: this.gameData
+        });
+        return;
+      }
+      // Otherwise, proceed with the conversation
       this.initiateConversation(this.nearbyVillager);
     }
   }
 
-  async initiateConversation(villager) {
+  async initiateConversation(villager) {  
     this.input.keyboard.enabled = false;
     this.player.setVelocity(0, 0);
 
@@ -528,6 +662,23 @@ export class HomeScene extends Phaser.Scene {
 
   update() {
     if (!this.player) return;
+
+    // --- Handle Mint Zone Visibility ---
+    if (this.activeMintZone) {
+        const playerBounds = this.player.getBounds();
+        const zoneBounds = this.activeMintZone.getBounds();
+        if (!Phaser.Geom.Intersects.RectangleToRectangle(playerBounds, zoneBounds)) {
+            this.mintText.setVisible(false);
+            this.activeMintZone = null;
+        } else {
+            this.mintText.setPosition(this.player.x, this.player.y - 30);
+            this.mintText.setVisible(true);
+        }
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.mintKey) && this.activeMintZone) {
+        this.mintItem(this.activeMintZone.itemName);
+    }
 
     if (this.playerLight) {
       this.playerLight.x = this.player.x;
@@ -567,6 +718,107 @@ export class HomeScene extends Phaser.Scene {
       this.player.setVelocity(0, 0);
     }
 
-    this.handleInteraction();
+    // Keep lock icons positioned and visible only when the player lacks the required item
+    this.villagers.getChildren().forEach(villager => {
+        if (villager.lockIcon) {
+            villager.lockIcon.setPosition(villager.x, villager.y - 25);
+            const isLocked = !!villager.requiredItem;
+            villager.lockIcon.setVisible(isLocked);
+        }
+    });
+ 
+     this.handleInteraction();
+  }
+
+  // --- New Methods for Minting and Inventory ---
+
+  unlockVillager(villagerName) {
+    const villager = this.villagers.getChildren().find(v => v.name === villagerName);
+    if (villager) {
+        console.log(`Unlocking villager: ${villagerName}`);
+        villager.requiredItem = null;
+        this.updateInventory();
+    }
+  }
+
+  createMintingZone(x, y, width, height, itemName) {
+    const zone = this.add.zone(x, y, width, height).setOrigin(0);
+    this.physics.world.enable(zone);
+    zone.body.setAllowGravity(false);
+    zone.body.moves = false;
+    zone.itemName = itemName;
+
+    this.physics.add.overlap(this.player, zone, () => {
+        this.activeMintZone = zone;
+        this.mintText.setText(`Press M to mint ${itemName.replace(/_/g, ' ')}`);
+    });
+  }
+
+  async mintItem(itemName) {
+    if (!this.suiClient || !this.account) {
+        console.error("Wallet not connected, cannot mint.");
+        return;
+    }
+
+    this.input.keyboard.enabled = false;
+    const mintingStatusText = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY, `Minting ${itemName}...`, {
+        fontSize: '24px', color: '#d4af37', backgroundColor: 'rgba(0,0,0,0.8)', padding: { x: 20, y: 10 }
+    }).setOrigin(0.5).setDepth(101);
+
+    try {
+        const tx = new Transaction();
+        tx.moveCall({
+            target: `${PACKAGE_ID}::contract_one::mint_item`,
+            arguments: [
+                tx.pure.address(this.account),
+                tx.pure('vector<u8>',Array.from(new TextEncoder().encode(itemName))),
+            ],
+        });
+
+        const result = await window.onechainWallet.signAndExecuteTransaction({
+            transaction: tx,
+        });
+
+        console.log("Mint successful!", result);
+        mintingStatusText.setText(`${itemName} minted successfully!`);
+        await this.updateInventory();
+
+    } catch (error) {
+        console.error("Minting failed:", error);
+        mintingStatusText.setText(`Minting failed. See console for details.`);
+    } finally {
+        this.time.delayedCall(2000, () => {
+            mintingStatusText.destroy();
+            this.input.keyboard.enabled = true;
+        });
+    }
+  }
+
+  async updateInventory() {
+    if (!this.suiClient || !this.account) return;
+
+    try {
+        const itemNftType = `${PACKAGE_ID}::contract_one::ItemNFT`;
+        const objects = await this.suiClient.getOwnedObjects({
+            owner: this.account,
+            filter: { StructType: itemNftType },
+            options: { showContent: true },
+        });
+
+        const currentInventory = new Set();
+        objects.data.forEach(item => {
+            if (item.data && item.data.content && item.data.content.fields) {
+                const nameBytes = item.data.content.fields.name;
+                const itemName = String.fromCharCode.apply(null, nameBytes);
+                currentInventory.add(itemName);
+            }
+        });
+        
+        this.playerInventory = currentInventory;
+        console.log("Player inventory updated:", Array.from(this.playerInventory));
+
+    } catch (error) {
+        console.error("Failed to update inventory:", error);
+    }
   }
 }

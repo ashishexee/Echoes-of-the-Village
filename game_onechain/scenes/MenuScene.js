@@ -209,7 +209,12 @@ export class MenuScene extends Phaser.Scene {
         if (this.enterButton) this.enterButton.alpha = 1;
         if (this.leaderboardButton) this.leaderboardButton.alpha = 1;
 
-        this.scene.start('LoadingScene', { playerGender: this.playerGender, nextScene: 'VideoScene' });
+        this.scene.start('LoadingScene', { 
+            playerGender: this.playerGender, 
+            nextScene: 'VideoScene',
+            account: this.walletAddress,
+            suiClient: this.suiClient
+        });
     }
 
     createButton(x, y, text, callback) {

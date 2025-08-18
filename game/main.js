@@ -5,6 +5,7 @@ import { HomeScene } from "./scenes/HomeScene.js";
 import { LeaderboardScene } from "./scenes/LeaderboardScene.js";
 import { DialogueScene } from "./scenes/DialogueScene.js";
 import { VideoScene } from "./scenes/VideoScene.js";
+import { ItemLockScene } from "../game_onechain/scenes/ItemLockScene.js";
 
 const config = {
   type: Phaser.CANVAS,
@@ -28,7 +29,8 @@ const config = {
     HomeScene,
     DialogueScene,
     LeaderboardScene,
-    VideoScene
+    VideoScene,
+    ItemLockScene
   ],
 };
 
