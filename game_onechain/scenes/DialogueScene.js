@@ -79,7 +79,7 @@ export class DialogueScene extends Phaser.Scene {
         const villagerName = this.conversationData.villager_name || "Villager";
         
         // Correctly find the villager's title from the initial game data
-        const currentVillagerInfo = this.newGameData.villagers.find(v => v.villager_id === this.conversationData.villager_id);
+        const currentVillagerInfo = this.newGameData.villagers.find(v => v.id=== this.conversationData.villager_id);
         const villagerTitle = currentVillagerInfo ? currentVillagerInfo.title : "Mysterious Figure";
 
         // --- Polished Title Display ---
