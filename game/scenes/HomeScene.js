@@ -14,6 +14,7 @@ export class HomeScene extends Phaser.Scene {
     this.nearbyVillager = null;
     this.enterKey = null;
     this.interactionText = null;
+    
   }
 
   create() {
