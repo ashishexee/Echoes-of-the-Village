@@ -2,12 +2,15 @@ import Phaser from "phaser";
 export class LoadingScene extends Phaser.Scene {
   constructor() {
     super({ key: "LoadingScene" });
+    this.account = null;
+    this.suiClient = null;
   }
 
   init(data) {
     this.nextScene = (data && data.nextScene) ? data.nextScene : 'VideoScene';
     this.playerGender = (data && data.playerGender) ? data.playerGender : null;
-    
+    this.account = data ? data.account : null;
+    this.suiClient = data ? data.suiClient : null;
   }
 
   preload() {
@@ -142,7 +145,11 @@ export class LoadingScene extends Phaser.Scene {
     this.time.delayedCall(500, () => {
       this.cameras.main.fadeOut(500, 0, 0, 0);
       this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-         const payload = this.playerGender ? { playerGender: this.playerGender } : undefined;
+         const payload = { 
+           playerGender: this.playerGender,
+           account: this.account,
+           suiClient: this.suiClient
+         };
         this.scene.start(this.nextScene, payload);
       });
     });

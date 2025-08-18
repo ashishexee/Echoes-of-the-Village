@@ -1,18 +1,19 @@
 import Phaser from "phaser";
 
 export class VideoScene extends Phaser.Scene {
-    voices;
-    playerGender;
     constructor() {
         super({ key: 'VideoScene' });
-        this.voices = [];
         this.playerGender = 'Male';
+        this.account = null;
+        this.suiClient = null;
+        this.dialogues = [];
+        this.currentTypingEvent = null;
     }
 
     init(data) {
-        if (data && data.playerGender) {
-            this.playerGender = data.playerGender;
-        }
+        this.playerGender = data ? data.playerGender : 'Male';
+        this.account = data ? data.account : null;
+        this.suiClient = data ? data.suiClient : null;
     }
 
     preload() {
@@ -113,6 +114,16 @@ export class VideoScene extends Phaser.Scene {
         skipButton.on('pointerdown', () => {
             if (video.isPlaying) video.stop();
             this.showDialogue();
+        });
+    }
+
+    startHomeScene() {
+        // Stop any active speech
+        window.speechSynthesis.cancel();
+        this.scene.start('HomeScene', { 
+            playerGender: this.playerGender,
+            account: this.account,
+            suiClient: this.suiClient
         });
     }
 
@@ -239,10 +250,12 @@ export class VideoScene extends Phaser.Scene {
     }
 
     startHomeScene() {
+        // Stop any active speech
         window.speechSynthesis.cancel();
-        this.cameras.main.fadeOut(800, 0, 0, 0);
-        this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
-            this.scene.start('HomeScene');
+        this.scene.start('HomeScene', { 
+            playerGender: this.playerGender,
+            account: this.account,
+            suiClient: this.suiClient
         });
     }
 
