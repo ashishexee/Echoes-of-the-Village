@@ -161,25 +161,20 @@ export class HomeScene extends Phaser.Scene {
     this.createBuilding(17, 9, "house02", 5, 5);
     this.createObstacle(10.4, 10.5, "house05", 6, 6);
     this.createBuilding(11, 6, "house02", 5, 5);
-    this.createBuilding(28 , 9, "house05", 4, 4);
+    this.createBuilding(27.5 , 9, "house02", 4, 4);
     this.createBuilding(30.6, 9, "house01", 4, 4);
     this.createBuilding(35.7, 11.2, "house01", 4, 4);
     this.createBuilding(27.6, 1.2, "church01", 7  , 7);
     this.createBuilding(36, 3.28, "windmill", 4.3, 4.3);
     this.createObstacle(37 , 0, "lake02", 5, 4);
     this.createObstacle(23, 9.8, "well01", 4, 4);
-    this.createObstacle(21.5, 13.7, "shop01", 4, 4);
-    this.createObstacle(25, 13.7, "shop01", 4, 4);
-    this.createObstacle(34, 16.4, "stove01", 4, 4);
-    this.createObstacle(27, 10.7, "animals01", 8, 8);
     this.createObstacle(36, 14.56, "forest01", 2, 2);
     this.createObstacle(31, 14.56, "forest01", 2, 2);
-    this.createObstacle(0.2, 14.56, "forest01", 2, 2);
+    this.createObstacle(0, 14.7, "forest01", 2, 2);
     this.createObstacle(7, 16.3, "forest01", 2, 2);
     this.createObstacle(-1, 14, "forest01", 2, 2);
     this.createObstacle(37, 13, "forest01", 2, 2);
     this.createObstacle(5.5, 10.6, "lake01", 5, 4.5);
-    this.createObstacle(26.5, 15.4, "lake01", 7, 7);
 
     // Trees
     this.createObstacle(5.3, 6.5, "tree01", 4, 4);
@@ -204,16 +199,6 @@ export class HomeScene extends Phaser.Scene {
     //Crops
     this.createObstacle(12.2, 16, "crop02", 2.5, 2);
     this.createObstacle(12.2, 18.3, "crop03", 2.5, 2);
-    this.createObstacle(15.2, 18.3, "crop02", 2.5, 2);
-    this.createObstacle(18.2, 18.3, "crop03", 2.5, 2);
-    this.createObstacle(18.2, 20.5, "crop02", 2.5, 2);
-    this.createObstacle(18.2, 16, "crop02", 2.5, 2);
-    this.createObstacle(21.2, 18.3, "crop02", 2.5, 2);
-    this.createObstacle(21.2, 20.5, "crop03", 2.5, 2);
-    this.createObstacle(24.2, 20.5, "crop02", 2.5, 2);
-    this.createObstacle(24.2, 18.3, "crop03", 2.5, 2);
-    this.createObstacle(27.2, 20.5, "crop03", 2.5, 2);
-    this.createObstacle(18.2, 13.7, "crop03", 2.5, 2);
     this.createObstacle(41.75, 3.6, "crop02", 2, 2);
     this.createObstacle(1.5, 16.15, "crop02", 2.3, 2);
     this.createObstacle(4.1, 16.15, "crop03", 2.2 , 2);
@@ -234,17 +219,17 @@ export class HomeScene extends Phaser.Scene {
     // Forests
     this.createBuilding(19.85, 3.2, "house01", 4.5, 4.5 );
 
-    
-    this.createObstacle(18.1, 3.4, "crop03", 2, 2); 
-    this.createObstacle(18.1, 5.65, "crop02", 2, 2); 
+    // Additional crops around the house
+    this.createObstacle(18.1, 3.4, "crop03", 2, 2); // left-top
+    this.createObstacle(18.1, 5.65, "crop02", 2, 2); // left-bottom
     this.createObstacle(24.15, 3.4, "crop02", 2, 2);
     this.createObstacle(24.15, 5.65, "crop03", 2, 2);
-    this.createObstacle(18.15, 1.2, "crop02", 2, 2); 
+    this.createObstacle(18.15, 1.2, "crop02", 2, 2); // bottom-left
     this.createObstacle(20.15, 1.2, "crop03", 2, 2);
-    this.createObstacle(22.15, 1.2, "crop02", 2, 2); 
+    this.createObstacle(22.15, 1.2, "crop02", 2, 2); // bottom-left
     this.createObstacle(24.15, 1.2, "crop03", 2, 2);
 
-    
+    // Randomly place flowers on green spaces
     const flowerTypes = ["flower01", "flower02", "flower03"];
     const greenSpaces = [];
     for (let y = 0; y < tilesY; y++) {
@@ -255,7 +240,7 @@ export class HomeScene extends Phaser.Scene {
       }
     }
 
-    const numberOfFlowers = 50; 
+    const numberOfFlowers = 50; // Adjust this number as needed
     for (let i = 0; i < numberOfFlowers; i++) {
       if (greenSpaces.length > 0) {
         const randomIndex = Phaser.Math.Between(0, greenSpaces.length - 1);
@@ -304,6 +289,31 @@ export class HomeScene extends Phaser.Scene {
       loop: true,
     });
   }
+
+  // triggerLightning() {
+  //   const lightning = this.lights.addLight(
+  //       Phaser.Math.Between(0, this.cameras.main.width),
+  //       Phaser.Math.Between(0, this.cameras.main.height),
+  //       800
+  //   ).setColor(0xffffff).setIntensity(3.0);
+
+  //   this.tweens.add({
+  //       targets: lightning,
+  //       intensity: 0,
+  //       duration: 250,
+  //       ease: 'Cubic.easeIn',
+  //       onComplete: () => {
+  //           this.lights.removeLight(lightning);
+  //       }
+  //   });
+
+  //   this.time.delayedCall(Phaser.Math.Between(200, 800), () => {
+  //       this.sound.play('thunder', { volume: 0.6 });
+  //   });
+
+  //   this.cameras.main.flash(100, 255, 255, 255);
+  // }
+
   isWalkableAt(worldX, worldY) {
     const tileX = Math.floor(worldX / this.tileSize);
     const tileY = Math.floor(worldY / this.tileSize);
