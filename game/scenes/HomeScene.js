@@ -93,7 +93,7 @@ export class HomeScene extends Phaser.Scene {
       { x: 34, y: 16, width: 14, height: 1 },
       { x: 40, y: 3, width: 1, height: 11 },
       { x: 38, y: 3, width: 3, height: 1 },
-      { x: 16, y: 5, width: 1, height: 13 },
+      { x: 16, y: 5, width: 1, height: 15.2 },
       { x: 1, y: 11, width: 16, height: 1 },
     ];
 
@@ -165,7 +165,7 @@ export class HomeScene extends Phaser.Scene {
     this.createBuilding(28 , 9, "house05", 4, 4);
     this.createBuilding(30.6, 9, "house01", 4, 4);
     this.createBuilding(35.7, 11.2, "house01", 4, 4);
-    this.createBuilding(27.6, 1.2, "church01", 7  , 7);
+    this.createBuilding(28.2, 1, "church01", 6  , 7);
     this.createBuilding(36, 3.28, "windmill", 4.3, 4.3);
     this.createObstacle(37 , 0, "lake02", 5, 4);
     this.createObstacle(23, 9.8, "well01", 4, 4);
@@ -204,7 +204,6 @@ export class HomeScene extends Phaser.Scene {
     //Crops
     this.createObstacle(12.2, 16, "crop02", 2.5, 2);
     this.createObstacle(12.2, 18.3, "crop03", 2.5, 2);
-    this.createObstacle(15.2, 18.3, "crop02", 2.5, 2);
     this.createObstacle(18.2, 18.3, "crop03", 2.5, 2);
     this.createObstacle(18.2, 20.5, "crop02", 2.5, 2);
     this.createObstacle(18.2, 16, "crop02", 2.5, 2);
@@ -267,15 +266,19 @@ export class HomeScene extends Phaser.Scene {
 
     // Villagers
     this.villagers = this.physics.add.group({ immovable: true });
-    this.createVillager(8, 10, "villager02", 0.069);
-    this.createVillager(16, 8, "villager02", 0.069);
-    this.createVillager(12, 16, "villager03", 0.069);
-    this.createVillager(20, 20, "villager04", 0.069);
-    this.createVillager(6, 3, "villager03", 0.069);
+    this.createVillager(7, 9.5, "villager04", 0.069);
+    this.createVillager(15, 8, "villager02", 0.069);
+    this.createVillager(11, 16, "villager03", 0.069);
+    this.createVillager(17, 19.3, "villager04", 0.069);
+    this.createVillager(5, 3, "villager03", 0.069);
+    this.createVillager(21, 11.5, "villager03", 0.069);
     this.createObstacle(6, 0.3, "crop03", 2, 2);
-    this.createVillager(26, 10, "villager02", 0.069);
-    this.createVillager(35, 7, "villager03", 0.089);
-    this.createVillager(15, 13, "villager04", 0.069);
+    this.createVillager(24.8, 8.7, "villager02", 0.069);
+    this.createVillager(26.2, 5, "villager04", 0.060);
+    this.createVillager(39, 2.5, "villager03", 0.069);
+    this.createVillager(40, 8, "villager02", 0.069);
+    this.createVillager(35, 16, "villager02", 0.069);
+    this.createVillager(15, 12.5, "villager04", 0.069);
 
     this.createPlayer(1, 4.5);
 
