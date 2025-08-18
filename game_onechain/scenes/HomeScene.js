@@ -73,6 +73,11 @@ export class HomeScene extends Phaser.Scene {
       this.sound.play("background_music", { loop: true, volume: 0.2 });
     }
 
+    // Launch the UI Scene to display the timer
+    if (!this.scene.isActive('UIScene')) {
+        this.scene.launch('UIScene');
+    }
+
     this.lights.enable();
     this.lights.setAmbientColor(0x101020);
 
