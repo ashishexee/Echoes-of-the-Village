@@ -137,7 +137,7 @@ export class LeaderboardScene extends Phaser.Scene {
             this.add.text(panelX, height / 2, 'No scores recorded yet.', { fontSize: '20px', color: '#cccccc' }).setOrigin(0.5);
             return;
         }
-
+        console.log(data.length);
         for (let i = 0; i < Math.min(data.length, maxEntries); i++) {
             const entry = data[i];
             const rank = `${i + 1}.`;
