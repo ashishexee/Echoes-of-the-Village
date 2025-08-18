@@ -1,4 +1,6 @@
 import Phaser from "phaser";
+// Your API functions are already correctly imported.
+import { startNewGame, getConversation } from "../api";
 
 export class HomeScene extends Phaser.Scene {
   constructor() {
@@ -14,9 +16,28 @@ export class HomeScene extends Phaser.Scene {
     this.nearbyVillager = null;
     this.enterKey = null;
     this.interactionText = null;
+    this.villagerCounter = 1;
+    // CHANGE 1: Add a property to store the initial game data from the backend.
+    this.gameData = null;
   }
 
-  create() {
+  async create() {
+    const loadingText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2, 'Creating a new mystery...', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
+    // Destructure the response from the API call.
+    const { game_id, inaccessible_locations, villagers } = await startNewGame();
+    loadingText.destroy();
+    if (!game_id) {
+      this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2, 'Error: Could not start a new game.\nPlease check the server and refresh.', { fontSize: '24px', fill: '#ff0000', align: 'center' }).setOrigin(0.5);
+      return;
+    }
+
+    // CHANGE 2: Store the received data as a scene property.
+    // This makes it accessible in other functions like initiateConversation.
+    this.gameData = { game_id, inaccessible_locations, villagers };
+    console.log("Game data initialized:", this.gameData);
+
+
+    // --- All of your detailed world-building code remains unchanged ---
     const framePadding = 25;
     const extraBottomSpace = 110;
     const frameWidth = this.cameras.main.width - framePadding * 2;
@@ -161,12 +182,12 @@ export class HomeScene extends Phaser.Scene {
     this.createBuilding(17, 9, "house02", 5, 5);
     this.createObstacle(10.4, 10.5, "house05", 6, 6);
     this.createBuilding(11, 6, "house02", 5, 5);
-    this.createBuilding(28 , 9, "house05", 4, 4);
+    this.createBuilding(28, 9, "house05", 4, 4);
     this.createBuilding(30.6, 9, "house01", 4, 4);
     this.createBuilding(35.7, 11.2, "house01", 4, 4);
-    this.createBuilding(27.6, 1.2, "church01", 7  , 7);
+    this.createBuilding(27.6, 1.2, "church01", 7, 7);
     this.createBuilding(36, 3.28, "windmill", 4.3, 4.3);
-    this.createObstacle(37 , 0, "lake02", 5, 4);
+    this.createObstacle(37, 0, "lake02", 5, 4);
     this.createObstacle(23, 9.8, "well01", 4, 4);
     this.createObstacle(21.5, 13.7, "shop01", 4, 4);
     this.createObstacle(25, 13.7, "shop01", 4, 4);
@@ -215,9 +236,9 @@ export class HomeScene extends Phaser.Scene {
     this.createObstacle(18.2, 13.7, "crop03", 2.5, 2);
     this.createObstacle(41.75, 3.6, "crop02", 2, 2);
     this.createObstacle(1.5, 16.15, "crop02", 2.3, 2);
-    this.createObstacle(4.1, 16.15, "crop03", 2.2 , 2);
-    this.createObstacle(4.1, 14, "crop02", 2.2 , 2);
-    this.createObstacle(1.5, 14, "crop03", 2.2 , 2);
+    this.createObstacle(4.1, 16.15, "crop03", 2.2, 2);
+    this.createObstacle(4.1, 14, "crop02", 2.2, 2);
+    this.createObstacle(1.5, 14, "crop03", 2.2, 2);
     this.createObstacle(41.75, 5.6, "crop03", 2, 2);
     this.createObstacle(41.75, 7.6, "crop02", 2, 2);
     this.createObstacle(41.75, 9.6, "crop03", 2, 2);
@@ -231,16 +252,16 @@ export class HomeScene extends Phaser.Scene {
     this.createObstacle(44.5, 13.6, "crop02", 2, 2);
 
     // Forests
-    this.createBuilding(19.85, 3.2, "house01", 4.5, 4.5 );
+    this.createBuilding(19.85, 3.2, "house01", 4.5, 4.5);
 
-    
-    this.createObstacle(18.1, 3.4, "crop03", 2, 2); 
-    this.createObstacle(18.1, 5.65, "crop02", 2, 2); 
+
+    this.createObstacle(18.1, 3.4, "crop03", 2, 2);
+    this.createObstacle(18.1, 5.65, "crop02", 2, 2);
     this.createObstacle(24.15, 3.4, "crop02", 2, 2);
     this.createObstacle(24.15, 5.65, "crop03", 2, 2);
-    this.createObstacle(18.15, 1.2, "crop02", 2, 2); 
+    this.createObstacle(18.15, 1.2, "crop02", 2, 2);
     this.createObstacle(20.15, 1.2, "crop03", 2, 2);
-    this.createObstacle(22.15, 1.2, "crop02", 2, 2); 
+    this.createObstacle(22.15, 1.2, "crop02", 2, 2);
     this.createObstacle(24.15, 1.2, "crop03", 2, 2);
     // Randomly place flowers on green spaces
     const flowerTypes = ["flower01", "flower02", "flower03"];
@@ -263,8 +284,9 @@ export class HomeScene extends Phaser.Scene {
       }
     }
 
-    // Villagers
+    // --- Villagers Setup ---
     this.villagers = this.physics.add.group({ immovable: true });
+    // Your existing villager creation calls
     this.createVillager(8, 10, "villager02", 0.069);
     this.createVillager(16, 8, "villager02", 0.069);
     this.createVillager(12, 16, "villager03", 0.069);
@@ -295,38 +317,7 @@ export class HomeScene extends Phaser.Scene {
       .setOrigin(0.5, 1)
       .setDepth(30)
       .setVisible(false);
-
-    this.time.addEvent({
-      delay: Phaser.Math.Between(8000, 20000),
-      callback: this.triggerLightning,
-      callbackScope: this,
-      loop: true,
-    });
   }
-
-  // triggerLightning() {
-  //   const lightning = this.lights.addLight(
-  //       Phaser.Math.Between(0, this.cameras.main.width),
-  //       Phaser.Math.Between(0, this.cameras.main.height),
-  //       800
-  //   ).setColor(0xffffff).setIntensity(3.0);
-
-  //   this.tweens.add({
-  //       targets: lightning,
-  //       intensity: 0,
-  //       duration: 250,
-  //       ease: 'Cubic.easeIn',
-  //       onComplete: () => {
-  //           this.lights.removeLight(lightning);
-  //       }
-  //   });
-
-  //   this.time.delayedCall(Phaser.Math.Between(200, 800), () => {
-  //       this.sound.play('thunder', { volume: 0.6 });
-  //   });
-
-  //   this.cameras.main.flash(100, 255, 255, 255);
-  // }
 
   isWalkableAt(worldX, worldY) {
     const tileX = Math.floor(worldX / this.tileSize);
@@ -394,17 +385,20 @@ export class HomeScene extends Phaser.Scene {
     this.createObstacle(tileX, tileY, texture, tileWidth, tileHeight);
   }
 
-  createVillager(tileX, tileY, name, scaleSize) {
+  createVillager(tileX, tileY, texture, scaleSize) {
     const villager = this.villagers.create(
       tileX * this.tileSize + 16,
       tileY * this.tileSize + 16,
-      name
+      texture
     );
     villager
       .setOrigin(0.5)
       .setDisplaySize(32, 32)
       .setScale(scaleSize)
       .setPipeline("Light2D");
+
+    villager.name = `villager_${this.villagerCounter}`;
+    this.villagerCounter++;
   }
 
   createPlayer(tileX, tileY) {
@@ -455,9 +449,32 @@ export class HomeScene extends Phaser.Scene {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.enterKey) && this.nearbyVillager) {
+      this.initiateConversation(this.nearbyVillager);
+    }
+  }
+
+  async initiateConversation(villager) {
+    this.input.keyboard.enabled = false;
+    this.player.setVelocity(0, 0);
+
+    this.interactionText.setText("...");
+    this.sound.play("villager_accept", { volume: 6 });
+
+    const conversationData = await getConversation(villager.name, "Hello");
+
+    this.input.keyboard.enabled = true;
+    this.interactionText.setText("Press ENTER to talk");
+
+    if (conversationData) {
       this.scene.pause();
-      this.sound.play("villager_accept", { volume: 6 });
-      this.scene.launch("DialogueScene", { villager: this.nearbyVillager });
+      // CHANGE 3: Pass the stored this.gameData object to the DialogueScene.
+      this.scene.launch('DialogueScene', {
+        conversationData: conversationData,
+        newGameData: this.gameData, // Pass the whole stored object
+        villagerSpriteKey: villager.texture.key
+      });
+    } else {
+      console.error("Could not fetch conversation for villager:", villager.name);
     }
   }
 

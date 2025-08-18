@@ -1,123 +1,208 @@
 import Phaser from "phaser";
+// Import the getConversation function to handle follow-up dialogue
+import { getConversation } from '../api'; 
 
 export class DialogueScene extends Phaser.Scene {
     constructor() {
         super({ key: "DialogueScene" });
-        this.villager = null;
+        this.conversationData = null;
+        this.villagerSpriteKey = null;
+        this.newGameData = null;
+        this.rightPanelContainer = null; 
     }
 
     init(data) {
-        this.villager = {
-            textureKey: data.villager.texture.key 
-        };
+        this.conversationData = data.conversationData;
+        this.villagerSpriteKey = data.villagerSpriteKey;
+        this.newGameData = data.newGameData;
     }
 
     create() {
-         const framePadding = 20;
-    const frameWidth = this.cameras.main.width - framePadding * 2;
-    const frameHeight = this.cameras.main.height - framePadding * 2;
-    const cornerRadius = 30;
+        const framePadding = 20;
+        const frameWidth = this.cameras.main.width - framePadding * 2;
+        const frameHeight = this.cameras.main.height - framePadding * 2;
+        const cornerRadius = 30;
 
-    const maskShape = this.make.graphics();
-    maskShape.fillStyle(0xd4af37);
-    maskShape.fillRoundedRect(framePadding, framePadding, frameWidth, frameHeight, cornerRadius);
-    this.cameras.main.setMask(maskShape.createGeometryMask());
+        const maskShape = this.make.graphics();
+        maskShape.fillStyle(0xd4af37);
+        maskShape.fillRoundedRect(framePadding, framePadding, frameWidth, frameHeight, cornerRadius);
+        this.cameras.main.setMask(maskShape.createGeometryMask());
 
-    const frame = this.add.graphics();
-    frame.lineStyle(10, 0xd4af37, 1);
-    frame.strokeRoundedRect(framePadding, framePadding, frameWidth, frameHeight, cornerRadius);
-    frame.setDepth(100);
-        this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0xd4af37, 0.7).setOrigin(0);
+        const frame = this.add.graphics();
+        frame.lineStyle(10, 0xd4af37, 1);
+        frame.strokeRoundedRect(framePadding, framePadding, frameWidth, frameHeight, cornerRadius);
+        frame.setDepth(100);
+        this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.7).setOrigin(0);
+        
         const panelWidth = this.cameras.main.width * 0.9;
         const panelHeight = this.cameras.main.height * 0.8;
         const panelX = this.cameras.main.centerX;
         const panelY = this.cameras.main.centerY;
 
-        this.add.graphics()
+        const mainPanel = this.add.graphics()
             .fillStyle(0x1a1a1a, 1)
             .fillRoundedRect(panelX - panelWidth / 2, panelY - panelHeight / 2, panelWidth, panelHeight, 16)
             .lineStyle(2, 0xd4af37, 1)
             .strokeRoundedRect(panelX - panelWidth / 2, panelY - panelHeight / 2, panelWidth, panelHeight, 16);
 
+        // --- UI Creation ---
         this.createLeftPanel(panelX, panelY, panelWidth, panelHeight);
-        this.createRightPanel(panelX, panelY, panelWidth, panelHeight);
+        
+        this.rightPanelContainer = this.add.container();
+        this.displayConversationInRightPanel(panelX, panelY, panelWidth, panelHeight);
 
-        this.add.text(panelX, panelY + panelHeight / 2 - 20, 'Press ENTER to close', {
+        const closeButton = this.add.text(panelX, panelY + panelHeight / 2 - 20, 'Close Conversation', {
             fontFamily: 'Arial',
-            fontSize: '16px',
-            color: '#aaaaaa',
+            fontSize: '18px',
+            color: '#ff4444',
             fontStyle: 'italic'
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        this.input.keyboard.on('keydown-ENTER', () => {
+        closeButton.on('pointerdown', () => {
             this.scene.stop();
             this.scene.resume('HomeScene');
         });
+
+        // --- Entry Animation ---
+        // Fade in the entire scene for a smooth transition
+        this.cameras.main.fadeIn(500, 0, 0, 0);
     }
 
     createLeftPanel(panelX, panelY, panelWidth, panelHeight) {
         const leftPanelX = panelX - panelWidth / 4;
         const leftPanelY = panelY;
 
-        this.add.image(leftPanelX, leftPanelY - panelHeight / 6, this.villager.textureKey)
+        const villagerImage = this.add.image(leftPanelX, leftPanelY - panelHeight / 6, this.villagerSpriteKey)
             .setScale(0.67)
             .setOrigin(0.5);
 
-        this.add.text(leftPanelX, leftPanelY + panelHeight / 6, 'CHARACTERISTICS', {
-            fontFamily: 'Arial',
-            fontSize: '20px',
+        const villagerName = this.conversationData.villager_name || "Villager";
+        
+        // Correctly find the villager's title from the initial game data
+        const currentVillagerInfo = this.newGameData.villagers.find(v => v.villager_id === this.conversationData.villager_id);
+        const villagerTitle = currentVillagerInfo ? currentVillagerInfo.title : "Mysterious Figure";
+
+        // --- Polished Title Display ---
+        const nameText = this.add.text(leftPanelX, leftPanelY + panelHeight / 4 - 20, villagerName, {
+            fontFamily: 'Georgia, serif',
+            fontSize: '32px',
             color: '#ffffff',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            align: 'center'
         }).setOrigin(0.5);
 
-        const statsText = [
-            "Mood: Cheerful",
-            "Occupation: Farmer",
-            "Likes: Sunshine, Apples",
-            "Dislikes: Rain, Goblins"
-        ];
+        const titleBg = this.add.graphics()
+            .fillStyle(0x000000, 0.5)
+            .fillRoundedRect(leftPanelX - 150, leftPanelY + panelHeight / 4 + 35, 300, 30, 15);
 
-        this.add.text(leftPanelX, leftPanelY + panelHeight / 4 + 20, statsText, {
-            fontFamily: 'Arial',
-            fontSize: '16px',
-            color: '#dddddd',
-            align: 'center',
-            lineSpacing: 8
-        }).setOrigin(0.5);
-    }
-
-    createRightPanel(panelX, panelY, panelWidth, panelHeight) {
-        const rightPanelX = panelX + panelWidth / 4;
-        const rightPanelY = panelY - panelHeight / 2 + 50;
-
-        const conversation = [
-            { speaker: 'Villager', line: 'Oh, hello there, traveler! It\'s a fine day, isn\'t it?' },
-            { speaker: 'Player', line: 'It is! I was just exploring the area.' },
-            { speaker: 'Villager', line: 'Be careful in the woods to the east. I\'ve heard strange noises coming from there lately.' },
-            { speaker: 'Player', line: 'Thanks for the warning. I\'ll keep an eye out.' }
-        ];
-
-        let textY = rightPanelY;
-        const textStyle = {
+        const titleText = this.add.text(leftPanelX, leftPanelY + panelHeight / 4 + 50, villagerTitle, {
             fontFamily: 'Arial',
             fontSize: '18px',
+            color: '#d4af37',
+            fontStyle: 'italic'
+        }).setOrigin(0.5);
+
+        // Animate the text appearing
+        this.tweens.add({
+            targets: [nameText, titleBg, titleText, villagerImage],
+            alpha: { from: 0, to: 1 },
+            duration: 800,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    displayConversationInRightPanel(panelX, panelY, panelWidth, panelHeight) {
+        this.rightPanelContainer.removeAll(true);
+
+        const rightPanelX = panelX + panelWidth / 4;
+        const rightPanelY = panelY - panelHeight / 2 + 50;
+        
+        const textStyle = {
+            fontFamily: 'Arial',
+            fontSize: '20px',
+            color: '#e0e0e0',
+            fontStyle: 'italic',
             wordWrap: { width: panelWidth / 2 - 60 }
         };
 
-        conversation.forEach(entry => {
-            let lineText;
-            if (entry.speaker === 'Player') {
-                lineText = this.add.text(rightPanelX, textY, `You: ${entry.line}`, {
-                    ...textStyle,
-                    color: '#87ceeb'
-                }).setOrigin(0.5, 0);
-            } else {
-                lineText = this.add.text(rightPanelX, textY, `${entry.speaker}: ${entry.line}`, {
-                    ...textStyle,
-                    color: '#ffffff'
-                }).setOrigin(0.5, 0);
-            }
-            textY += lineText.getBounds().height + 20;
+        const dialogueText = this.add.text(rightPanelX, rightPanelY, `"${this.conversationData.npc_dialogue}"`, textStyle).setOrigin(0.5, 0);
+        this.rightPanelContainer.add(dialogueText);
+
+        let startY = rightPanelY + dialogueText.getBounds().height + 50;
+        
+        // --- Create Stylish Suggestion Buttons ---
+        this.conversationData.player_suggestions.forEach((suggestion, index) => {
+            const button = this.createSuggestionButton(rightPanelX, startY + (index * 70), suggestion, () => {
+                this.getNextDialogue(this.conversationData.villager_id, suggestion);
+            });
+            this.rightPanelContainer.add(button);
+
+            // Staggered fade-in animation for each button
+            button.setAlpha(0);
+            this.tweens.add({
+                targets: button,
+                alpha: 1,
+                duration: 500,
+                delay: 200 + (index * 150),
+                ease: 'Sine.easeInOut'
+            });
         });
+    }
+
+    createSuggestionButton(x, y, text, callback) {
+        const buttonWidth = 400;
+        const buttonHeight = 50;
+        const container = this.add.container(x, y);
+
+        const background = this.add.graphics()
+            .fillStyle(0x333333, 0.8)
+            .fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
+
+        const border = this.add.graphics()
+            .lineStyle(2, 0x87ceeb, 1)
+            .strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
+
+        const buttonText = this.add.text(0, 0, text, {
+            fontFamily: 'Arial',
+            fontSize: '18px',
+            color: '#87ceeb',
+            wordWrap: { width: buttonWidth - 40 },
+            align: 'center'
+        }).setOrigin(0.5);
+
+        container.add([background, border, buttonText]);
+        container.setSize(buttonWidth, buttonHeight);
+        container.setInteractive({ useHandCursor: true })
+            .on('pointerdown', callback)
+            .on('pointerover', () => {
+                background.clear().fillStyle(0x4D4D4D, 1).fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
+                border.clear().lineStyle(2, 0xFFFFFF, 1).strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
+                this.tweens.add({ targets: container, scale: 1.05, duration: 200, ease: 'Power1' });
+            })
+            .on('pointerout', () => {
+                background.clear().fillStyle(0x333333, 0.8).fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
+                border.clear().lineStyle(2, 0x87ceeb, 1).strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
+                this.tweens.add({ targets: container, scale: 1, duration: 200, ease: 'Power1' });
+            });
+
+        return container;
+    }
+
+    async getNextDialogue(villagerId, playerMessage) {
+        this.rightPanelContainer.removeAll(true);
+        const loadingText = this.add.text(this.cameras.main.centerX + this.cameras.main.width / 4, this.cameras.main.centerY, "...", {
+            fontSize: '24px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        this.rightPanelContainer.add(loadingText);
+
+        const nextData = await getConversation(villagerId, playerMessage);
+
+        if (nextData) {
+            this.conversationData = nextData;
+            this.displayConversationInRightPanel(this.cameras.main.centerX, this.cameras.main.centerY, this.cameras.main.width * 0.9, this.cameras.main.height * 0.8);
+        } else {
+            loadingText.setText("I... have nothing more to say.");
+        }
     }
 }
