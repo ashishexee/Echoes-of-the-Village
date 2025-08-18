@@ -20,6 +20,7 @@ export class VideoScene extends Phaser.Scene {
     }
 
     create() {
+        this.currentTypingEvent = null;
         this.initTTS();
         this.showTypingText(
             "A Few Days Back",
@@ -63,7 +64,13 @@ export class VideoScene extends Phaser.Scene {
             utterance.volume = 1.0;
             utterance.onend = () => resolve();
             utterance.onerror = () => resolve();
-            window.speechSynthesis.speak(utterance);
+            const cancelHandler = () => {
+            resolve();
+            window.speechSynthesis.removeEventListener('cancel', cancelHandler);
+        };
+        window.speechSynthesis.addEventListener('cancel', cancelHandler);
+
+        window.speechSynthesis.speak(utterance);
         });
     }
 
@@ -131,6 +138,39 @@ export class VideoScene extends Phaser.Scene {
             color: '#ffff00',
             fontFamily: 'Arial'
         }).setOrigin(0.5);
+
+        const skipButton = this.add.text(this.scale.width - 100, this.scale.height - 50, 'Skip >>', {
+            fontFamily: 'Arial',
+            fontSize: '20px',
+            color: '#ffffff',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            padding: { x: 8, y: 4 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(200);
+
+        const cleanupAndGoHome = () => {
+    // Stop any active speech
+    window.speechSynthesis.cancel();
+
+    // **THIS IS THE KEY FIX**
+    // If a typing timer is active, stop it
+    if (this.currentTypingEvent) {
+        this.currentTypingEvent.remove(false);
+        this.currentTypingEvent = null;
+    }
+
+    // Destroy the UI elements
+    if (skipButton && skipButton.destroy) skipButton.destroy();
+    if (dialogueText && dialogueText.destroy) dialogueText.destroy();
+    if (speakerText && speakerText.destroy) speakerText.destroy();
+
+    // Transition to the next scene
+    this.startHomeScene();
+};
+
+        skipButton.on('pointerdown', () => {
+            cleanupAndGoHome();
+        });
+
         const showNextLine = async () => {
             window.speechSynthesis.cancel();
             if (index >= dialogues.length) {
@@ -151,24 +191,33 @@ export class VideoScene extends Phaser.Scene {
         showNextLine();
     }
 
-    typeText(target, fullText, onComplete) {
-        let i = 0;
-        target.setText('');
-        const evt = this.time.addEvent({
-            delay: 60,
-            loop: true,
-            callback: () => {
-                if (i < fullText.length) {
-                    target.setText(target.text + fullText[i]);
-                    i++;
-                    return;
-                }
-                evt.remove(false);
-                if (onComplete) this.time.delayedCall(100, onComplete, [], this);
-            },
-            callbackScope: this
-        });
+   typeText(target, fullText, onComplete) {
+    let i = 0;
+    target.setText('');
+
+    // If a timer is already running, stop it first
+    if (this.currentTypingEvent) {
+        this.currentTypingEvent.remove();
     }
+
+    // Store the new timer event in the scene property
+    this.currentTypingEvent = this.time.addEvent({
+        delay: 60,
+        loop: true,
+        callback: () => {
+            if (i < fullText.length) {
+                target.setText(target.text + fullText[i]);
+                i++;
+                return;
+            }
+            // When done, remove the event and clear the property
+            this.currentTypingEvent.remove(false);
+            this.currentTypingEvent = null;
+            if (onComplete) this.time.delayedCall(100, onComplete, [], this);
+        },
+        callbackScope: this
+    });
+}
 
     showTypingText(text, style, x, y, onComplete) {
         let i = 0;
