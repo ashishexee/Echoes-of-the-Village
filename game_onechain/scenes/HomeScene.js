@@ -254,6 +254,7 @@ export class HomeScene extends Phaser.Scene {
     this.createObstacle(44.5, 9.6, "crop02", 2, 2);
     this.createObstacle(44.5, 11.6, "crop03", 2, 2);
     this.createObstacle(44.5, 13.6, "crop02", 2, 2);
+
     // Forests
     this.createBuilding(19.85, 3.2, "house01", 4.5, 4.5);
 
@@ -289,6 +290,7 @@ export class HomeScene extends Phaser.Scene {
 
     // --- Villagers Setup ---
     this.villagers = this.physics.add.group({ immovable: true });
+
    this.createVillager(7, 9.5, "villager04", 0.069);
     this.createVillager(15, 8, "villager02", 0.069);
     this.createVillager(11, 16, "villager03", 0.069);
