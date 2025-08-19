@@ -36,16 +36,20 @@ export class HomeScene extends Phaser.Scene {
   init(data) {
     if (data && data.existingGameData) {
       this.gameData = data.existingGameData;
-      console.log("Existing game data loaded:", this.gameData);
+      console.log("Existing game data loaded:", this.gameData); 
+
     }
     // Receive wallet data from WalletScene/MenuScene
     this.suiClient = data.suiClient;
     this.account = data.account;
+    this.difficulty = data.difficulty || "Easy";
   }
 
   async create() {
     const loadingText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2, 'Creating a new mystery...', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
-    const { game_id, inaccessible_locations, villagers } = await startNewGame();
+    console.log("diffulty - ", this.difficulty);
+    
+    const { game_id, inaccessible_locations, villagers } = await startNewGame(this.difficulty);
     loadingText.destroy();
     if (!game_id) {
       this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2, 'Error: Could not start a new game.\nPlease check the server and refresh.', { fontSize: '24px', fill: '#ff0000', align: 'center' }).setOrigin(0.5);

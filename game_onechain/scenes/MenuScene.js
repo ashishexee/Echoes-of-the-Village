@@ -15,6 +15,11 @@ export class MenuScene extends Phaser.Scene {
         this.leaderboardButton = null;
         this.suiClient = null;
         this.scoreText = null;
+        this.difficulties = ["Very Easy", "Easy", "Medium", "Hard"];
+        this.difficultyIndex = 1; // Default to "Easy"
+        this._difficultyOverlay = null;
+        this.difficultyText = null;
+        this.arrowKeys = null;
     }
 
     init(data) {
@@ -186,12 +191,12 @@ export class MenuScene extends Phaser.Scene {
 
         const maleBtn = this.createButton(width / 2 - 110, height / 2 + 30, 'Male', () => {
             this.playerGender = 'Male';
-            this.closeGenderSelectionAndStart();
+            this.closeGenderSelectionAndShowDifficulty();
         });
 
         const femaleBtn = this.createButton(width / 2 + 110, height / 2 + 30, 'Female', () => {
             this.playerGender = 'Female';
-            this.closeGenderSelectionAndStart();
+            this.closeGenderSelectionAndShowDifficulty();
         });
 
         this._genderOverlay = this.add.container(0, 0, [blocker, panel, title, maleBtn, femaleBtn]);
@@ -201,16 +206,111 @@ export class MenuScene extends Phaser.Scene {
         if (this.leaderboardButton) this.leaderboardButton.alpha = 0.5;
     }
 
-    closeGenderSelectionAndStart() {
+    closeGenderSelectionAndShowDifficulty() {
         if (this._genderOverlay) {
             this._genderOverlay.destroy();
             this._genderOverlay = null;
         }
+        this.showDifficultySelection();
+    }
+    showDifficultySelection() {
+        if (this._difficultyOverlay) return;
+        const { width, height } = this.scale;
+
+        const blocker = this.add.rectangle(0, 0, width, height, 0x000000, 0.6).setOrigin(0).setInteractive();
+
+        const panelW = 550;
+        const panelH = 250;
+        const panelX = width / 2 - panelW / 2;
+        const panelY = height / 2 - panelH / 2;
+
+        const panel = this.add.graphics().fillStyle(0x1a1a1a, 0.98).fillRoundedRect(panelX, panelY, panelW, panelH, 14);
+        panel.lineStyle(2, 0xd4af37, 1).strokeRoundedRect(panelX, panelY, panelW, panelH, 14);
+        const title = this.add.text(width / 2, height / 2 - 70, 'Select Difficulty', {
+            fontFamily: 'Georgia, serif',
+            fontSize: '32px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+
+        // Difficulty Text Display
+        this.difficultyText = this.add.text(width / 2, height / 2, this.difficulties[this.difficultyIndex], {
+            fontFamily: 'Arial',
+            fontSize: '36px',
+            color: '#ffffff',
+            align: 'center'
+        }).setOrigin(0.5);
+        // Arrow Buttons
+        const leftArrow = this.createArrowButton(width / 2 - 150, height / 2, 'left', () => this.changeDifficulty(-1));
+        const rightArrow = this.createArrowButton(width / 2 + 150, height / 2, 'right', () => this.changeDifficulty(1));
+
+        // Start Game Button
+        const startBtn = this.createButton(width / 2, height / 2 + 80, 'Start Game', () => {
+            this.closeDifficultyAndStart();
+        });
+
+        this._difficultyOverlay = this.add.container(0, 0, [blocker, panel, title, this.difficultyText, leftArrow, rightArrow, startBtn]);
+        this._difficultyOverlay.setDepth(1000);
+
+        // Keyboard input for arrows
+        this.arrowKeys = this.input.keyboard.createCursorKeys();
+        this.input.keyboard.on('keydown-LEFT', () => this.changeDifficulty(-1));
+        this.input.keyboard.on('keydown-RIGHT', () => this.changeDifficulty(1));
+    }
+        changeDifficulty(direction) {
+        const oldText = this.difficultyText;
+        const { width } = this.scale;
+
+        // Animate old text out
+        this.tweens.add({
+            targets: oldText,
+            x: oldText.x - 100 * direction,
+            alpha: 0,
+            duration: 200,
+            ease: 'Sine.easeIn',
+            onComplete: () => {
+                oldText.destroy();
+            }
+        });
+         this.difficultyIndex += direction;
+        if (this.difficultyIndex < 0) this.difficultyIndex = this.difficulties.length - 1;
+        if (this.difficultyIndex >= this.difficulties.length) this.difficultyIndex = 0;
+
+        // Create and animate new text in
+        this.difficultyText = this.add.text(width / 2 + 100 * direction, this.difficultyText.y, this.difficulties[this.difficultyIndex], oldText.style).setOrigin(0.5).setAlpha(0);
+        this._difficultyOverlay.add(this.difficultyText);
+
+        this.tweens.add({
+            targets: this.difficultyText,
+            x: width / 2,
+            alpha: 1,
+            duration: 200,
+            ease: 'Sine.easeOut'
+        });
+            }
+
+    createArrowButton(x, y, direction, callback) {
+        const arrow = this.add.text(x, y, direction === 'left' ? '◀' : '▶', { fontSize: '48px', color: '#d4af37' }).setOrigin(0.5);
+        arrow.setInteractive({ useHandCursor: true });
+        arrow.on('pointerdown', callback);
+        arrow.on('pointerover', () => arrow.setColor('#fffa8e'));
+        arrow.on('pointerout', () => arrow.setColor('#d4af37'));
+        return arrow;
+    }
+closeDifficultyAndStart() {
+        if (this._difficultyOverlay) {
+            this._difficultyOverlay.destroy();
+            this._difficultyOverlay = null;
+        }
+        // Cleanup keyboard listeners
+        this.input.keyboard.off('keydown-LEFT');
+        this.input.keyboard.off('keydown-RIGHT');
+        this.arrowKeys = null;
+
         if (this.enterButton) this.enterButton.alpha = 1;
         if (this.leaderboardButton) this.leaderboardButton.alpha = 1;
-
-        this.scene.start('LoadingScene', { 
-            playerGender: this.playerGender, 
+        this.scene.start('LoadingScene', {
+            playerGender: this.playerGender,
+            difficulty: this.difficulties[this.difficultyIndex], // Pass the selected difficulty
             nextScene: 'VideoScene',
             account: this.walletAddress,
             suiClient: this.suiClient

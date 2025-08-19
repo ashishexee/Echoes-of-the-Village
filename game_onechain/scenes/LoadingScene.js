@@ -4,6 +4,7 @@ export class LoadingScene extends Phaser.Scene {
     super({ key: "LoadingScene" });
     this.account = null;
     this.suiClient = null;
+    this.dataToPass = {};
   }
 
   init(data) {
@@ -11,6 +12,7 @@ export class LoadingScene extends Phaser.Scene {
     this.playerGender = (data && data.playerGender) ? data.playerGender : null;
     this.account = data ? data.account : null;
     this.suiClient = data ? data.suiClient : null;
+    this.dataToPass = data;
   }
 
   preload() {
@@ -121,6 +123,7 @@ export class LoadingScene extends Phaser.Scene {
       percentText.destroy();
       assetText.destroy();
       loadingText.setText('Loading Complete!');
+      this.scene.start(this.dataToPass.nextScene, this.dataToPass);
     });
   }
 
