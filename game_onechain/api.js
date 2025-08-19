@@ -1,4 +1,3 @@
-
 const API_BASE_URL = "http://127.0.0.1:8000"; 
 let currentGameId = null;
 
@@ -44,19 +43,52 @@ async function startNewGame(difficulty) {
  */
 async function getConversation(villagerId, playerMessage) {
   if (!currentGameId) {
-    console.error("Cannot get conversation, game_id is not set.");
+    console.error("Cannot get conversation: no active game ID.");
+    return null;
+  }
+  try {
+    const response = await fetch(`${API_BASE_URL}/game/${currentGameId}/interact`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        villager_id: villagerId,
+        player_message: playerMessage,
+      }),
+    });
+    console.log(response);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error getting conversation:", error);
+    return null;
+  }
+}
+
+/**
+ * Sends the player's chosen location to the backend.
+ * @param {string} location The name of the location chosen by the player.
+ * @returns {Promise<object|null>} The server's response, or null if it fails.
+ */
+async function chooseLocation(location) {
+  if (!currentGameId) {
+    console.error("Cannot choose location: no active game ID.");
     return null;
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/game/${currentGameId}/interact`, {
+    const response = await fetch(`${API_BASE_URL}/game/${currentGameId}/guess`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        villager_id: villagerId,
-        player_message: playerMessage,
+        location_name: location,
       }),
     });
 
@@ -65,13 +97,14 @@ async function getConversation(villagerId, playerMessage) {
     }
 
     const data = await response.json();
+    console.log(`Location choice '${location}' sent successfully. Response:`, data);
     return data;
 
   } catch (error) {
-    console.error("Error getting conversation:", error);
+    console.error("Error choosing location:", error);
     return null;
   }
 }
 
 // Export the functions to be used in your game scenes
-export { startNewGame, getConversation };
+export { startNewGame, getConversation, chooseLocation };
