@@ -9,6 +9,10 @@ export class DialogueScene extends Phaser.Scene {
         this.villagerSpriteKey = null;
         this.newGameData = null;
         this.rightPanelContainer = null; 
+
+        this.voices = [];
+        this._currentSpeechResolve = null;
+        this._currentSpeechTimer = null;
     }
 
     init(data) {
@@ -18,6 +22,8 @@ export class DialogueScene extends Phaser.Scene {
     }
 
     create() {
+
+        this.initTTS();
         const framePadding = 20;
         const frameWidth = this.cameras.main.width - framePadding * 2;
         const frameHeight = this.cameras.main.height - framePadding * 2;
@@ -59,6 +65,7 @@ export class DialogueScene extends Phaser.Scene {
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
         closeButton.on('pointerdown', () => {
+            this.stopSpeaking();
             this.scene.stop();
             this.scene.resume('HomeScene');
         });
@@ -67,6 +74,74 @@ export class DialogueScene extends Phaser.Scene {
         // Fade in the entire scene for a smooth transition
         this.cameras.main.fadeIn(500, 0, 0, 0);
     }
+
+    
+    initTTS() {
+        if (!('speechSynthesis' in window)) return;
+        const populateVoiceList = () => {
+            this.voices = window.speechSynthesis.getVoices() || [];
+        };
+        populateVoiceList();
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+            window.speechSynthesis.onvoiceschanged = populateVoiceList;
+        }
+    }
+
+     stopSpeaking() {
+        try { window.speechSynthesis.cancel(); } catch(e) {}
+        if (this._currentSpeechTimer) {
+            clearTimeout(this._currentSpeechTimer);
+            this._currentSpeechTimer = null;
+        }
+        if (this._currentSpeechResolve) {
+            try { this._currentSpeechResolve(); } catch(e) {}
+            this._currentSpeechResolve = null;
+        }
+    }
+
+   speakText(text, speakerName) {
+        if (!('speechSynthesis' in window) || !text) return Promise.resolve();
+        
+        this.stopSpeaking(); // Ensure any prior speech is stopped
+
+        return new Promise((resolve) => {
+            const utterance = new SpeechSynthesisUtterance(text);
+            this._currentSpeechResolve = () => {
+                resolve();
+                this._currentSpeechResolve = null;
+            };
+
+            const estimatedMs = Math.max(2000, text.length * 80);
+            this._currentSpeechTimer = setTimeout(() => {
+                if (this._currentSpeechResolve) this._currentSpeechResolve();
+            }, estimatedMs + 2000);
+             const villagerVoice = this.voices.find(v => /David|Google US English|en-US/i.test(v.name)) || this.voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en')) || this.voices[0];
+            if (villagerVoice) utterance.voice = villagerVoice;
+            
+            utterance.pitch = 0.9;
+            utterance.rate = 1.0;
+            utterance.volume = 1.0;
+
+            utterance.onend = () => {
+                if (this._currentSpeechResolve) this._currentSpeechResolve();
+                if (this._currentSpeechTimer) clearTimeout(this._currentSpeechTimer);
+            };
+            utterance.onerror = () => {
+                if (this._currentSpeechResolve) this._currentSpeechResolve();
+                if (this._currentSpeechTimer) clearTimeout(this._currentSpeechTimer);
+            };
+             try {
+                window.speechSynthesis.speak(utterance);
+            } catch (e) {
+                if (this._currentSpeechResolve) this._currentSpeechResolve();
+            }
+        });
+    }
+
+    shutdown() {
+        this.stopSpeaking();
+    }
+
 
     createLeftPanel(panelX, panelY, panelWidth, panelHeight) {
         const leftPanelX = panelX - panelWidth / 4;
@@ -127,6 +202,7 @@ export class DialogueScene extends Phaser.Scene {
 
         const dialogueText = this.add.text(rightPanelX, rightPanelY, `"${this.conversationData.npc_dialogue}"`, textStyle).setOrigin(0.5, 0);
         this.rightPanelContainer.add(dialogueText);
+        this.speakText(this.conversationData.npc_dialogue,this.conversationData.villagerName);
 
         let startY = rightPanelY + dialogueText.getBounds().height + 50;
         
@@ -189,6 +265,7 @@ export class DialogueScene extends Phaser.Scene {
     }
 
     async getNextDialogue(villagerId, playerMessage) {
+        this.stopSpeaking();
         this.rightPanelContainer.removeAll(true);
         const loadingText = this.add.text(this.cameras.main.centerX + this.cameras.main.width / 4, this.cameras.main.centerY, "...", {
             fontSize: '24px',
