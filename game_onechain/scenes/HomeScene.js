@@ -24,7 +24,6 @@ export class HomeScene extends Phaser.Scene {
     this.initialPlayerPos = { x: 1, y: 4.5};
     this.resetFeedbackText = null;
 
-    // New properties for wallet, inventory, and minting
     this.suiClient = null;
     this.account = null;
     this.playerInventory = new Set();
@@ -39,10 +38,10 @@ export class HomeScene extends Phaser.Scene {
       console.log("Existing game data loaded:", this.gameData); 
 
     }
-    // Receive wallet data from WalletScene/MenuScene
-    this.suiClient = data.suiClient;
-    this.account = data.account;
-    this.difficulty = data.difficulty || "Easy";
+    // Receive wallet data from WalletScene/MenuScene safely
+    this.suiClient = data ? data.suiClient : null;
+    this.account = data ? data.account : null;
+    this.difficulty = data ? data.difficulty || "Easy" : "Easy";
   }
 
   async create() {
@@ -104,7 +103,7 @@ export class HomeScene extends Phaser.Scene {
     }
 
     if (!this.scene.isActive('UIScene')) {
-        this.scene.launch('UIScene');
+        this.scene.launch('UIScene', { inaccessibleLocations: this.gameData.inaccessible_locations });
     }
 
     this.lights.enable();
@@ -219,7 +218,7 @@ export class HomeScene extends Phaser.Scene {
     this.createBuilding(28, 9, "house05", 4, 4);
     this.createBuilding(30.6, 9, "house01", 4, 4);
     this.createBuilding(35.7, 11.2, "house01", 4, 4);
-    this.createBuilding(27.6, 1.2, "church01", 7, 7);
+    this.createObstacle(27.6, 1.2, "church01", 7, 7);
     this.createBuilding(36, 3.28, "windmill", 4.3, 4.3);
     this.createObstacle(37, 0, "lake02", 5, 4);
     this.createObstacle(23, 9.8, "well01", 4, 4);
@@ -413,14 +412,14 @@ export class HomeScene extends Phaser.Scene {
 
     // --- Dynamic Minting Zone Creation ---
     const ALL_MINT_ZONES = {
-        'FISHING_ROD': { x: 5.5, y: 10.6, width: 100, height: 100 }, // By the lake
-        'AXE': { x: 36, y: 14.56, width: 80, height: 80 },       // In the forest
-        'SHOVEL': { x: 23, y: 9.8, width: 80, height: 80 },      // By the well
-        'LANTERN': { x: 27.6, y: 1.2, width: 100, height: 100 },   // At the church
-        'PICKAXE': { x: 34, y: 16.4, width: 80, height: 80 },      // Near the forge
-        'HAMMER': { x: 37, y: 3.28, width: 80, height: 80 },       // By the windmill
-        'BUCKET': { x: 21.5, y: 13.7, width: 80, height: 80 },     // At the market
-        'SCYTHE': { x: 41.75, y: 3.6, width: 80, height: 80 }      // In the fields
+        'FISHING_ROD': { x: 6, y: 10, width: 80, height: 80 },       // By the lake, on the path
+        'AXE': { x: 35.5, y: 15, width: 80, height: 80 },     // Edge of the forest, on the path
+        'SHOVEL': { x: 23, y: 9, width: 80, height: 80 },       // By the well, on the path
+        'LANTERN': { x: 28, y: 6, width: 80, height: 80 },      // At the church entrance, on the path
+        'PICKAXE': { x: 33, y: 16.5, width: 80, height: 80 },   // Near the forge, on the path
+        'HAMMER': { x: 37, y: 4, width: 80, height: 80 },       // By the windmill, on the path
+        'BUCKET': { x: 21, y: 13, width: 80, height: 80 },      // At the market, on the path
+        'SCYTHE': { x: 40.5, y: 4, width: 80, height: 80 }      // In the fields, on the path
     };
 
     currentGameItems.forEach(itemName => {
@@ -645,7 +644,8 @@ export class HomeScene extends Phaser.Scene {
 
     this.interactionText.setText("...");
     this.sound.play("villager_accept", { volume: 6 });
-
+    console.log(villager.name);
+    
     const conversationData = await getConversation(villager.name, "Hello");
 
     this.input.keyboard.enabled = true;
@@ -681,7 +681,10 @@ export class HomeScene extends Phaser.Scene {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.mintKey) && this.activeMintZone) {
-        this.mintItem(this.activeMintZone.itemName);
+        // Prevent minting if the item is already in the inventory
+        if (!this.playerInventory.has(this.activeMintZone.itemName)) {
+            this.mintItem(this.activeMintZone.itemName);
+        }
     }
 
     if (this.playerLight) {
@@ -754,7 +757,12 @@ export class HomeScene extends Phaser.Scene {
 
     this.physics.add.overlap(this.player, zone, () => {
         this.activeMintZone = zone;
-        this.mintText.setText(`Press M to mint ${itemName.replace(/_/g, ' ')}`);
+        // Check inventory and update the minting prompt accordingly
+        if (this.playerInventory.has(itemName)) {
+            this.mintText.setText(`You already own the ${itemName.replace(/_/g, ' ')}`);
+        } else {
+            this.mintText.setText(`Press M to mint ${itemName.replace(/_/g, ' ')}`);
+        }
     });
   }
 
