@@ -25,13 +25,6 @@ class InteractResponse(BaseModel):
     npc_dialogue: str
     player_suggestions: List[str]
 
-class ConfirmItemRequest(BaseModel):
-    item_id: str
-
-class ConfirmItemResponse(BaseModel):
-    status: str
-    message: str
-
 class GuessRequest(BaseModel):
     location_name: str
 

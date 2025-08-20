@@ -12,8 +12,8 @@ class GameState:
         self.villagers = [] # Each game session will store its own list of villagers
         self.player_state = {
             "discovered_nodes": [],
-            "inventory": [],
             "knowledge_summary": "You've just woken up in a cozy cottage...",
-            "familiarity": {}
+            "familiarity": {},
+            "unproductive_turns": {} # Tracks turns since last clue for each villager
         }
         self.full_npc_memory = {}
