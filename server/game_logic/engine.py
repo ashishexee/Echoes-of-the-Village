@@ -34,9 +34,12 @@ class GameEngine:
         
         game_state.villagers = VILLAGER_ROSTER
         
+        # Initialize state for all villagers
         for v in game_state.villagers:
             game_state.full_npc_memory[v["name"]] = []
             game_state.player_state["familiarity"][v["name"]] = 0
+            # BUG FIX: Re-added initialization for unproductive_turns
+            game_state.player_state["unproductive_turns"][v["name"]] = 0
 
         # 2. Build the detailed Quest Network
         try:
@@ -53,7 +56,6 @@ class GameEngine:
                  raise ValueError("Generated quest network is missing the 'nodes' list.")
             print("Quest network generated successfully.")
             
-            # Print the generated nodes for testing
             print("\n\n" + "="*20 + " GENERATED QUEST NETWORK (SPOILERS) " + "="*20)
             print(json.dumps(game_state.quest_network, indent=2))
             print("="*70 + "\n\n")
@@ -66,9 +68,6 @@ class GameEngine:
         return game_state
     
     def get_villager_clue_status(self, game_state: GameState, npc_name: str):
-        """
-        Determines the conversational status of a villager based on available clues.
-        """
         undiscovered_nodes = [
             node for node in game_state.quest_network.get("nodes", [])
             if node["villager_name"] == npc_name and node["node_id"] not in game_state.player_state["discovered_nodes"]
@@ -111,12 +110,16 @@ class GameEngine:
         
         dialogue_data = json.loads(dialogue_turn)
         
-        # Update state based on LLM response
         game_state.full_npc_memory[npc_name].append({"role": "player", "content": player_input})
         game_state.full_npc_memory[npc_name].append({"role": "npc", "content": dialogue_data.get("npc_dialogue")})
         
+        # LOGIC FIX: Enforce the "+1" familiarity rule in the engine
         new_familiarity = dialogue_data.get("new_familiarity_level")
         if new_familiarity is not None:
+            old_familiarity = game_state.player_state["familiarity"].get(npc_name, 0)
+            # Cap the increase at a maximum of 1
+            if new_familiarity > old_familiarity + 1:
+                new_familiarity = old_familiarity + 1
             game_state.player_state["familiarity"][npc_name] = new_familiarity
 
         revealed_node_id = dialogue_data.get("node_revealed_id")
@@ -125,7 +128,6 @@ class GameEngine:
             all_discovered_content = [node['content'] for node in game_state.quest_network.get('nodes', []) if node['node_id'] in game_state.player_state['discovered_nodes']]
             game_state.player_state["knowledge_summary"] = "Key points discovered so far: " + "; ".join(all_discovered_content)
 
-        # Print the current player state after the turn for testing
         print("\n\n" + "-"*20 + " CURRENT PLAYER STATE " + "-"*20)
         print(json.dumps(game_state.player_state, indent=2, default=str))
         print("-"*60 + "\n\n")
