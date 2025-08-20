@@ -8,6 +8,9 @@ export class UIScene extends Phaser.Scene {
         this.elapsedSeconds = 0;
         this.inaccessibleLocations = [];
         this._locationOverlay = null;
+        this.locationButton = null;
+        this.locationButtonEnabled = false;
+        this.resetHintText = null; // added: small hint text property
     }
 
     init(data) {
@@ -44,6 +47,20 @@ export class UIScene extends Phaser.Scene {
             callbackScope: this,
             loop: true
         });
+
+        // Small reset hint at the end of the screen (bottom-right)
+        this.resetHintText = this.add.text(
+            this.cameras.main.width - 16,
+            this.cameras.main.height - 8,
+            'Hold [R] if your character is stuck',
+            {
+                fontFamily: 'Arial',
+                fontSize: '14px',
+                color: '#aaaaaa',
+                backgroundColor: 'rgba(0,0,0,0.35)',
+                padding: { x: 8, y: 4 }
+            }
+        ).setOrigin(1, 1).setDepth(300).setScrollFactor(0);
     }
 
     createLocationButton() {
@@ -54,18 +71,50 @@ export class UIScene extends Phaser.Scene {
             {
                 fontFamily: 'Arial',
                 fontSize: '24px',
-                color: '#000000',
-                backgroundColor: '#d4af37',
+                color: '#A9A9A9',
+                backgroundColor: '#555555',
                 padding: { x: 15, y: 8 },
             }
         ).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
         button.on('pointerdown', () => {
-            this.showLocationChoices();
+            if (this.locationButtonEnabled) {
+                this.showLocationChoices();
+            } else {
+                this.showDisabledLocationMessage();
+            }
         });
 
-        button.on('pointerover', () => button.setBackgroundColor('#f5d56b'));
-        button.on('pointerout', () => button.setBackgroundColor('#d4af37'));
+        button.on('pointerover', () => {
+            if (this.locationButtonEnabled) {
+                button.setBackgroundColor('#f5d56b');
+            }
+        });
+        button.on('pointerout', () => {
+            if (this.locationButtonEnabled) {
+                button.setBackgroundColor('#d4af37');
+            }
+        });
+        this.locationButton = button;
+    }
+
+    showDisabledLocationMessage() {
+        const remainingSeconds = 120 - this.elapsedSeconds;
+        const message = `Available in ${remainingSeconds} seconds.`;
+
+        const feedbackText = this.add.text(
+            this.locationButton.x,
+            this.locationButton.y - 50,
+            message,
+            {
+                fontFamily: 'Arial', fontSize: '18px', color: '#ffdddd',
+                backgroundColor: 'rgba(0,0,0,0.7)', padding: { x: 10, y: 5 }
+            }
+        ).setOrigin(0.5).setDepth(201);
+
+        this.time.delayedCall(1500, () => {
+            feedbackText.destroy();
+        });
     }
 
     showLocationChoices() {
@@ -73,7 +122,9 @@ export class UIScene extends Phaser.Scene {
 
         const { width, height } = this.cameras.main;
 
-        const blocker = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0).setInteractive();
+        const blocker = this.add.rectangle(0, 0, width, height, 0x000000, 0.7)
+            .setOrigin(0)
+            .setInteractive();
 
         const panelHeight = 80 + (this.inaccessibleLocations.length * 70);
         const panelWidth = 400;
@@ -107,8 +158,34 @@ export class UIScene extends Phaser.Scene {
             return button;
         });
 
-        this._locationOverlay = this.add.container(0, 0, [blocker, panel, title, ...locationButtons]);
+        // small hint to close with Enter
+        const hintText = this.add.text(width / 2, panelY + panelHeight - 18, 'Press Enter to close', {
+            fontFamily: 'Arial',
+            fontSize: '14px',
+            color: '#cccccc'
+        }).setOrigin(0.5);
+
+        this._locationOverlay = this.add.container(0, 0, [blocker, panel, title, ...locationButtons, hintText]);
         this._locationOverlay.setDepth(200);
+
+        const closeOverlay = () => {
+            if (this._locationOverlay) {
+                this._locationOverlay.destroy();
+                this._locationOverlay = null;
+            }
+        };
+
+        // close when clicking outside (blocker)
+        blocker.on('pointerdown', () => closeOverlay());
+
+        // close on Enter key, ensure we remove handler when overlay is destroyed
+        const onEnter = () => closeOverlay();
+        this.input.keyboard.on('keydown-ENTER', onEnter);
+
+        // cleanup keyboard listener if overlay is destroyed elsewhere (e.g., selectLocation)
+        this._locationOverlay.once('destroy', () => {
+            this.input.keyboard.off('keydown-ENTER', onEnter);
+        });
     }
 
     async selectLocation(location) {
@@ -172,6 +249,12 @@ export class UIScene extends Phaser.Scene {
         this.elapsedSeconds++;
         this.registry.set('elapsedTime', this.elapsedSeconds);
         this.timerText.setText(this.formatTime(this.elapsedSeconds));
+
+        if (!this.locationButtonEnabled && this.elapsedSeconds >= 120 && this.locationButton) {
+            this.locationButtonEnabled = true;
+            this.locationButton.setBackgroundColor('#d4af37');
+            this.locationButton.setColor('#000000');
+        }
     }
 
     formatTime(seconds) {
