@@ -7,6 +7,8 @@ export class UIScene extends Phaser.Scene {
         this.timerText = null;
         this.elapsedSeconds = 0;
         this.inaccessibleLocations = [];
+        this.account = null;
+        this.suiClient = null;
         this._locationOverlay = null;
         this.locationButton = null;
         this.locationButtonEnabled = false;
@@ -16,6 +18,8 @@ export class UIScene extends Phaser.Scene {
     init(data) {
         if (data && data.inaccessibleLocations) {
             this.inaccessibleLocations = data.inaccessibleLocations;
+            this.account = data.account;
+            this.suiClient = data.suiClient;
         }
     }
 
@@ -193,7 +197,7 @@ export class UIScene extends Phaser.Scene {
             this._locationOverlay.destroy();
             this._locationOverlay = null;
         }
-        
+
         const feedbackText = this.add.text(
             this.cameras.main.width / 2,
             this.cameras.main.height / 2,
@@ -205,12 +209,60 @@ export class UIScene extends Phaser.Scene {
         ).setOrigin(0.5).setDepth(201);
 
         const result = await chooseLocation(location);
-
-        if (result) {
-            feedbackText.setText(`Investigation successful!`);
-        } else {
-            feedbackText.setText(`Investigation failed. Please try again.`);
+        if (!result) {
+            feedbackText.setText("Error: Game session not found.");
+            this.time.delayedCall(2000, () => {
+                this.scene.stop('HomeScene');
+                this.scene.start('MenuScene');
+            });
+            return;
         }
+
+        if (result.is_correct) {
+            feedbackText.setText(`Investigation successful!`);
+
+            // Wait a moment to show the success message before transitioning
+            this.time.delayedCall(1500, () => {
+                const homeScene = this.scene.get('HomeScene');
+                // --- Implement the Fair Scoring System ---
+                const baseScore = 10000;
+                const minutes = Math.floor(this.elapsedSeconds / 60);
+                const timePenalty = minutes * 50;
+                // homeScene.guessCount tracks incorrect guesses
+                const guessPenalty = (homeScene.guessCount) * 1500;
+                const nftBonus = homeScene.playerInventory.size * 250;
+                const trueEndingBonus = result.is_true_ending ? 500 : 0;
+                let finalScore = baseScore - timePenalty - guessPenalty + nftBonus + trueEndingBonus;
+                // Ensure the score is not negative
+                finalScore = Math.max(0, finalScore);
+                const endData = {
+                    isCorrect: result.is_correct,
+                    isTrueEnding: result.is_true_ending,
+                    score: finalScore,
+                    time: this.formatTime(this.elapsedSeconds),
+                    guesses: homeScene.guessCount + 1, // Include the final correct guess
+                    nfts: homeScene.playerInventory.size,
+                    account: this.account,
+                    suiClient: this.suiClient,
+                };
+
+                // Stop the game scenes and launch the EndScene
+                this.scene.stop('HomeScene');
+                this.scene.stop(); // Stop the UIScene itself
+                this.scene.start('EndScene', endData);
+            });
+        } else {
+            // If the guess is wrong, just show a message and let the player continue
+            feedbackText.setText(`Investigation failed. Please try again.`);
+            const homeScene = this.scene.get('HomeScene');
+            if (homeScene) {
+                homeScene.guessCount++; // Increment the guess counter
+            }
+            this.time.delayedCall(2000, () => {
+                feedbackText.destroy();
+            });
+        }
+
 
         this.time.delayedCall(2000, () => {
             feedbackText.destroy();
@@ -250,7 +302,7 @@ export class UIScene extends Phaser.Scene {
         this.registry.set('elapsedTime', this.elapsedSeconds);
         this.timerText.setText(this.formatTime(this.elapsedSeconds));
 
-        if (!this.locationButtonEnabled && this.elapsedSeconds >= 120 && this.locationButton) {
+        if (!this.locationButtonEnabled && this.elapsedSeconds >= 5 && this.locationButton) {
             this.locationButtonEnabled = true;
             this.locationButton.setBackgroundColor('#d4af37');
             this.locationButton.setColor('#000000');

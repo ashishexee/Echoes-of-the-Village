@@ -23,13 +23,15 @@ export class HomeScene extends Phaser.Scene {
     this.resetTimer = null;
     this.initialPlayerPos = { x: 1, y: 4.5};
     this.resetFeedbackText = null;
-
     this.suiClient = null;
     this.account = null;
     this.playerInventory = new Set();
     this.mintKey = null;
     this.activeMintZone = null;
     this.mintText = null;
+    this.startTime = 0;
+    this.guessCount = 0;
+    this.nftCount = 0;
   }
 
   init(data) {
@@ -44,6 +46,7 @@ export class HomeScene extends Phaser.Scene {
   }
 
   async create() {
+    this.startTime = this.time.now;
     // Create loading UI matching LoadingScene style
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
@@ -300,7 +303,7 @@ export class HomeScene extends Phaser.Scene {
     }
 
     if (!this.scene.isActive('UIScene')) {
-        this.scene.launch('UIScene', { inaccessibleLocations: this.gameData.inaccessible_locations });
+        this.scene.launch('UIScene', {account: this.account, suiClient: this.suiClient, inaccessibleLocations: this.gameData.inaccessible_locations });
     }
 
     this.lights.enable();

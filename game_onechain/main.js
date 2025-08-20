@@ -8,6 +8,7 @@ import { VideoScene } from "./scenes/VideoScene.js";
 import { UIScene } from "./scenes/UIScene.js";
 import { ItemLockScene } from "../game_onechain/scenes/ItemLockScene.js";
 import { InventoryScene } from "./scenes/InventoryScene.js";
+import { EndScene } from "./scenes/EndScene.js";
 const config = {
   type: Phaser.CANVAS,
   width: window.innerWidth,
@@ -37,6 +38,7 @@ const config = {
     UIScene,
     ItemLockScene,
     InventoryScene,
+    EndScene
   ],
 };
 
