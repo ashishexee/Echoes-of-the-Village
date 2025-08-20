@@ -24,7 +24,6 @@ export class HomeScene extends Phaser.Scene {
     this.initialPlayerPos = { x: 1, y: 4.5};
     this.resetFeedbackText = null;
 
-    // New properties for wallet, inventory, and minting
     this.suiClient = null;
     this.account = null;
     this.playerInventory = new Set();
@@ -36,17 +35,220 @@ export class HomeScene extends Phaser.Scene {
   init(data) {
     if (data && data.existingGameData) {
       this.gameData = data.existingGameData;
-      console.log("Existing game data loaded:", this.gameData);
+      console.log("Existing game data loaded:", this.gameData); 
+
     }
-    // Receive wallet data from WalletScene/MenuScene
-    this.suiClient = data.suiClient;
-    this.account = data.account;
+    this.suiClient = data ? data.suiClient : null;
+    this.account = data ? data.account : null;
+    this.difficulty = data ? data.difficulty || "Easy" : "Easy";
   }
 
   async create() {
-    const loadingText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2, 'Creating a new mystery...', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
-    const { game_id, inaccessible_locations, villagers } = await startNewGame();
-    loadingText.destroy();
+    // Create loading UI matching LoadingScene style
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    // Add background overlay
+    const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.9).setOrigin(0).setDepth(200);
+
+    // Create main loading panel with better styling
+    const panelWidth = 600;
+    const panelHeight = 300;
+    const panelX = width / 2 - panelWidth / 2;
+    const panelY = height / 2 - panelHeight / 2;
+
+    // Create graphics for the panel with gradient effect
+    const loadingPanel = this.add.graphics().setDepth(201);
+    
+    // Main panel background
+    loadingPanel.fillStyle(0x1a1a2e, 0.95);
+    loadingPanel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 25);
+    
+    // Golden border
+    loadingPanel.lineStyle(4, 0xd4af37, 1);
+    loadingPanel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 25);
+    
+    // Inner glow effect
+    loadingPanel.lineStyle(2, 0xffd700, 0.6);
+    loadingPanel.strokeRoundedRect(panelX + 2, panelY + 2, panelWidth - 4, panelHeight - 4, 23);
+
+    // Game title
+    const gameTitle = this.add.text(width / 2, panelY + 60, 'Echoes of the Village', {
+      fontFamily: 'Georgia, serif',
+      fontSize: '36px',
+      color: '#d4af37',
+      align: 'center',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(202);
+
+    // Loading subtitle
+    const loadingSubtitle = this.add.text(width / 2, panelY + 100, 'Creating a New Mystery...', {
+      fontFamily: 'Arial',
+      fontSize: '22px',
+      color: '#ffffff',
+      align: 'center'
+    }).setOrigin(0.5).setDepth(202);
+
+    // Progress bar setup with better styling
+    const progressBarWidth = 450;
+    const progressBarHeight = 25;
+    const progressBarX = width / 2 - progressBarWidth / 2;
+    const progressBarY = panelY + 160;
+
+    // Progress bar background
+    const progressBox = this.add.graphics().setDepth(202);
+    progressBox.fillStyle(0x2c2c54, 0.8);
+    progressBox.fillRoundedRect(progressBarX, progressBarY, progressBarWidth, progressBarHeight, 12);
+    progressBox.lineStyle(2, 0x666699, 1);
+    progressBox.strokeRoundedRect(progressBarX, progressBarY, progressBarWidth, progressBarHeight, 12);
+
+    const progressBar = this.add.graphics().setDepth(203);
+
+    // Percentage text
+    const percentText = this.add.text(width / 2, progressBarY + progressBarHeight / 2, '0%', {
+      fontFamily: 'Arial',
+      fontSize: '16px',
+      color: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5).setDepth(204);
+
+    // Status text
+    const statusText = this.add.text(width / 2, panelY + 220, 'Initializing...', {
+      fontFamily: 'Arial',
+      fontSize: '18px',
+      color: '#cccccc',
+      align: 'center'
+    }).setOrigin(0.5).setDepth(202);
+
+    // Loading dots animation
+    const loadingDots = this.add.text(width / 2, panelY + 250, '', {
+      fontFamily: 'Arial',
+      fontSize: '24px',
+      color: '#d4af37'
+    }).setOrigin(0.5).setDepth(202);
+
+    let dotCount = 0;
+    const dotsTimer = this.time.addEvent({
+      delay: 500,
+      callback: () => {
+        dotCount = (dotCount + 1) % 4;
+        loadingDots.setText('.'.repeat(dotCount));
+      },
+      loop: true
+    });
+
+    // Extended progress bar animation (3 seconds instead of 2)
+    let progress = 0;
+    const progressTimer = this.time.addEvent({
+      delay: 50, // Smoother animation with smaller intervals
+      callback: () => {
+        progress += 0.005; // Slower increment for 3-second duration
+        if (progress > 1) progress = 1;
+
+        // Create gradient progress bar
+        progressBar.clear();
+        
+        // Main progress bar with gradient effect
+        progressBar.fillGradientStyle(0x4CAF50, 0x2E7D32, 0x81C784, 0x66BB6A, 1);
+        const padding = 3;
+        const progressWidth = (progressBarWidth - padding * 2) * progress;
+        progressBar.fillRoundedRect(
+          progressBarX + padding,
+          progressBarY + padding,
+          progressWidth,
+          progressBarHeight - padding * 2,
+          10
+        );
+
+        // Add shine effect
+        if (progress > 0.1) {
+          progressBar.fillStyle(0xffffff, 0.3);
+          progressBar.fillRoundedRect(
+            progressBarX + padding,
+            progressBarY + padding + 2,
+            progressWidth,
+            4,
+            2
+          );
+        }
+
+        percentText.setText(Math.floor(progress * 100) + '%');
+
+        // Update status text based on progress with more stages
+        if (progress < 0.2) {
+          statusText.setText('Connecting to server...');
+        } else if (progress < 0.4) {
+          statusText.setText('Generating mystery storyline...');
+        } else if (progress < 0.6) {
+          statusText.setText('Creating village layout...');
+        } else if (progress < 0.8) {
+          statusText.setText('Placing villagers and items...');
+        } else if (progress < 0.95) {
+          statusText.setText('Finalizing game world...');
+        } else {
+          statusText.setText('Almost ready...');
+        }
+      },
+      loop: true
+    });
+
+    console.log("diffulty - ", this.difficulty);
+    
+    const { game_id, inaccessible_locations, villagers } = await startNewGame(this.difficulty);
+    
+    // Complete the progress bar with final animation
+    progressTimer.destroy();
+    dotsTimer.destroy();
+    
+    // Set progress to 100% immediately instead of animating
+    progress = 1;
+    progressBar.clear();
+    progressBar.fillGradientStyle(0x4CAF50, 0x2E7D32, 0x81C784, 0x66BB6A, 1);
+    const padding = 3;
+    const progressWidth = (progressBarWidth - padding * 2) * progress;
+    progressBar.fillRoundedRect(
+      progressBarX + padding,
+      progressBarY + padding,
+      progressWidth,
+      progressBarHeight - padding * 2,
+      10
+    );
+    
+    // Shine effect
+    progressBar.fillStyle(0xffffff, 0.3);
+    progressBar.fillRoundedRect(
+      progressBarX + padding,
+      progressBarY + padding + 2,
+      progressWidth,
+      4,
+      2
+    );
+    
+    percentText.setText('100%');
+    statusText.setText('Complete!');
+    loadingDots.setText('✓');
+    loadingDots.setStyle({ color: '#4CAF50', fontSize: '32px' });
+
+    // Clean up loading UI with fade out effect
+    this.time.delayedCall(800, () => {
+      this.tweens.add({
+        targets: [overlay, loadingPanel, gameTitle, loadingSubtitle, progressBox, progressBar, percentText, statusText, loadingDots],
+        alpha: 0,
+        duration: 500,
+        onComplete: () => {
+          overlay.destroy();
+          loadingPanel.destroy();
+          gameTitle.destroy();
+          loadingSubtitle.destroy();
+          progressBox.destroy();
+          progressBar.destroy();
+          percentText.destroy();
+          statusText.destroy();
+          loadingDots.destroy();
+        }
+      });
+    });
+
     if (!game_id) {
       this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2, 'Error: Could not start a new game.\nPlease check the server and refresh.', { fontSize: '24px', fill: '#ff0000', align: 'center' }).setOrigin(0.5);
       return;
@@ -54,12 +256,10 @@ export class HomeScene extends Phaser.Scene {
     this.gameData = { game_id, inaccessible_locations, villagers };
     console.log("Game data initialized:", this.gameData);
 
-    // Listen for the unlock event from ItemLockScene
     if (this.scene.get('ItemLockScene')) {
         this.scene.get('ItemLockScene').events.on('villagerUnlocked', this.unlockVillager, this);
     }
 
-    // Check wallet for existing items at the start of the game
     if (this.account && this.suiClient) {
         await this.updateInventory();
     }
@@ -100,14 +300,12 @@ export class HomeScene extends Phaser.Scene {
     }
 
     if (!this.scene.isActive('UIScene')) {
-        this.scene.launch('UIScene');
+        this.scene.launch('UIScene', { inaccessibleLocations: this.gameData.inaccessible_locations });
     }
 
     this.lights.enable();
     this.lights.setAmbientColor(0x101020);
 
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
     const tilesX = Math.ceil(width / this.tileSize);
     const tilesY = Math.floor(height / this.tileSize);
 
@@ -205,18 +403,18 @@ export class HomeScene extends Phaser.Scene {
     }
 
     // Buildings
-    this.createBuilding(0.5, 0.7, "house01", 4, 4);
-    this.createBuilding(5.5, 13.7, "house01", 5, 5);
-    this.createBuilding(14, 0.8, "house01", 4.5, 4.5);
-    this.createBuilding(2, 6.5, "house01", 4, 4);
-    this.createBuilding(17, 9, "house02", 5, 5);
+    this.createObstacle(0.5, 0.7, "house01", 4, 4);
+    this.createObstacle(5.5, 13.7, "house01", 5, 5);
+    this.createObstacle(14, 0.8, "house01", 4.5, 4.5);
+    this.createObstacle(2, 6.5, "house01", 4, 4);
+    this.createObstacle(17, 9, "house02", 5, 5);
     this.createObstacle(10.4, 10.5, "house05", 6, 6);
-    this.createBuilding(11, 6, "house02", 5, 5);
-    this.createBuilding(28, 9, "house05", 4, 4);
-    this.createBuilding(30.6, 9, "house01", 4, 4);
-    this.createBuilding(35.7, 11.2, "house01", 4, 4);
-    this.createBuilding(27.6, 1.2, "church01", 7, 7);
-    this.createBuilding(36, 3.28, "windmill", 4.3, 4.3);
+    this.createObstacle(11, 6, "house02", 5, 5);
+    this.createObstacle(28, 9, "house05", 4, 4);
+    this.createObstacle(30.6, 9, "house01", 4, 4);
+    this.createObstacle(35.7, 11.2, "house01", 4, 4);
+    this.createObstacle(27.6, 1.2, "church01", 7, 7);
+    this.createObstacle(36, 3.28, "windmill", 4.3, 4.3);
     this.createObstacle(37, 0, "lake02", 5, 4);
     this.createObstacle(23, 9.8, "well01", 4, 4);
     this.createObstacle(21.5, 13.7, "shop01", 4, 4);
@@ -281,7 +479,7 @@ export class HomeScene extends Phaser.Scene {
     this.createObstacle(44.5, 13.6, "crop02", 2, 2);
 
     // Forests
-    this.createBuilding(19.85, 3.2, "house01", 4.5, 4.5);
+    this.createObstacle(19.85, 3.2, "house01", 4.5, 4.5);
 
 
     this.createObstacle(18.1, 3.4, "crop03", 2, 2);
@@ -409,14 +607,14 @@ export class HomeScene extends Phaser.Scene {
 
     // --- Dynamic Minting Zone Creation ---
     const ALL_MINT_ZONES = {
-        'FISHING_ROD': { x: 5.5, y: 10.6, width: 100, height: 100 }, // By the lake
-        'AXE': { x: 36, y: 14.56, width: 80, height: 80 },       // In the forest
-        'SHOVEL': { x: 23, y: 9.8, width: 80, height: 80 },      // By the well
-        'LANTERN': { x: 27.6, y: 1.2, width: 100, height: 100 },   // At the church
-        'PICKAXE': { x: 34, y: 16.4, width: 80, height: 80 },      // Near the forge
-        'HAMMER': { x: 37, y: 3.28, width: 80, height: 80 },       // By the windmill
-        'BUCKET': { x: 21.5, y: 13.7, width: 80, height: 80 },     // At the market
-        'SCYTHE': { x: 41.75, y: 3.6, width: 80, height: 80 }      // In the fields
+        'FISHING_ROD': { x: 6, y: 10, width: 80, height: 80 },       // By the lake, on the path
+        'AXE': { x: 35.5, y: 15, width: 80, height: 80 },     // Edge of the forest, on the path
+        'SHOVEL': { x: 23, y: 9, width: 80, height: 80 },       // By the well, on the path
+        'LANTERN': { x: 28, y: 6, width: 80, height: 80 },      // At the church entrance, on the path
+        'PICKAXE': { x: 33, y: 16.5, width: 80, height: 80 },   // Near the forge, on the path
+        'HAMMER': { x: 37, y: 4, width: 80, height: 80 },       // By the windmill, on the path
+        'BUCKET': { x: 21, y: 13, width: 80, height: 80 },      // At the market, on the path
+        'SCYTHE': { x: 40.5, y: 4, width: 80, height: 80 }      // In the fields, on the path
     };
 
     currentGameItems.forEach(itemName => {
@@ -641,7 +839,8 @@ export class HomeScene extends Phaser.Scene {
 
     this.interactionText.setText("...");
     this.sound.play("villager_accept", { volume: 6 });
-
+    console.log(villager.name);
+    
     const conversationData = await getConversation(villager.name, "Hello");
 
     this.input.keyboard.enabled = true;
@@ -677,7 +876,10 @@ export class HomeScene extends Phaser.Scene {
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.mintKey) && this.activeMintZone) {
-        this.mintItem(this.activeMintZone.itemName);
+        // Prevent minting if the item is already in the inventory
+        if (!this.playerInventory.has(this.activeMintZone.itemName)) {
+            this.mintItem(this.activeMintZone.itemName);
+        }
     }
 
     if (this.playerLight) {
@@ -750,7 +952,14 @@ export class HomeScene extends Phaser.Scene {
 
     this.physics.add.overlap(this.player, zone, () => {
         this.activeMintZone = zone;
-        this.mintText.setText(`Press M to mint ${itemName.replace(/_/g, ' ')}`);
+        // Make mint text yellow
+        this.mintText.setStyle({ color: '#ffff00' });
+        // Check inventory and update the minting prompt accordingly
+        if (this.playerInventory.has(itemName)) {
+            this.mintText.setText(`You already own the ${itemName.replace(/_/g, ' ')}`);
+        } else {
+            this.mintText.setText(`Press M to mint ${itemName.replace(/_/g, ' ')}`);
+        }
     });
   }
 

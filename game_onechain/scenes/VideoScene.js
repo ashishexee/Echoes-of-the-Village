@@ -8,12 +8,14 @@ export class VideoScene extends Phaser.Scene {
         this.suiClient = null;
         this.dialogues = [];
         this.currentTypingEvent = null;
+        this.dataToPass = {};
     }
 
     init(data) {
         this.playerGender = data ? data.playerGender : 'Male';
         this.account = data ? data.account : null;
         this.suiClient = data ? data.suiClient : null;
+        this.dataToPass = data;
     }
 
     preload() {
@@ -123,7 +125,8 @@ export class VideoScene extends Phaser.Scene {
         this.scene.start('HomeScene', { 
             playerGender: this.playerGender,
             account: this.account,
-            suiClient: this.suiClient
+            suiClient: this.suiClient,
+            difficulty: this.dataToPass.difficulty
         });
     }
 
@@ -246,16 +249,6 @@ export class VideoScene extends Phaser.Scene {
                 if (onComplete) this.time.delayedCall(200, onComplete, [], this);
             },
             callbackScope: this
-        });
-    }
-
-    startHomeScene() {
-        // Stop any active speech
-        window.speechSynthesis.cancel();
-        this.scene.start('HomeScene', { 
-            playerGender: this.playerGender,
-            account: this.account,
-            suiClient: this.suiClient
         });
     }
 
