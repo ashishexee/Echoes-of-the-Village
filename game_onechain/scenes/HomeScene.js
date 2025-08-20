@@ -525,12 +525,12 @@ export class HomeScene extends Phaser.Scene {
     console.log("Items for this game session:", currentGameItems);
  
      const villagerSpriteMap = {
-         "villager_0": { tileX: 7, tileY: 9.5, texture: "villager04", scale: 0.069 },
-         "villager_1": { tileX: 15, tileY: 8, texture: "villager02", scale: 0.069 },
+         "villager_1": { tileX: 7, tileY: 9.5, texture: "villager04", scale: 0.069 },
+         "villager_5": { tileX: 15, tileY: 8, texture: "villager02", scale: 0.069 },
          "villager_2": { tileX: 11, tileY: 16, texture: "villager03", scale: 0.069 },
          "villager_3": { tileX: 17, tileY: 19.3, texture: "villager04", scale: 0.069 },
-         "villager_4": { tileX: 5, tileY: 3, texture: "villager03", scale: 0.069 },
-         "villager_5": { tileX: 21, tileY: 11.5, texture: "villager03", scale: 0.069 },
+         "villager_0": { tileX: 5, tileY: 3, texture: "villager03", scale: 0.069 },
+         "villager_4": { tileX: 21, tileY: 11.5, texture: "villager03", scale: 0.069 },
          "villager_6": { tileX: 24.8, tileY: 8.7, texture: "villager02", scale: 0.069 },
          "villager_7": { tileX: 26.2, tileY: 5, texture: "villager04", scale: 0.060 },
      };
@@ -773,7 +773,6 @@ export class HomeScene extends Phaser.Scene {
     });
 
     this.resetKey.on('up', () => {
-        // If the key is released before the timer completes, cancel the reset
         if (this.resetTimer && this.resetTimer.getProgress() < 1) {
             this.resetTimer.remove(false);
             this.resetFeedbackText.setVisible(false);
@@ -872,6 +871,8 @@ export class HomeScene extends Phaser.Scene {
         } else {
             this.mintText.setPosition(this.player.x, this.player.y - 30);
             this.mintText.setVisible(true);
+            // Continuously update the text based on current inventory state
+            this.updateMintZoneText(this.activeMintZone.itemName);
         }
     }
 
@@ -955,12 +956,18 @@ export class HomeScene extends Phaser.Scene {
         // Make mint text yellow
         this.mintText.setStyle({ color: '#ffff00' });
         // Check inventory and update the minting prompt accordingly
-        if (this.playerInventory.has(itemName)) {
-            this.mintText.setText(`You already own the ${itemName.replace(/_/g, ' ')}`);
-        } else {
-            this.mintText.setText(`Press M to mint ${itemName.replace(/_/g, ' ')}`);
-        }
+        this.updateMintZoneText(itemName);
     });
+  }
+
+  updateMintZoneText(itemName) {
+    if (this.playerInventory.has(itemName)) {
+        this.mintText.setText(`You already own the ${itemName.replace(/_/g, ' ')}`);
+        this.mintText.setStyle({ color: '#888888' }); // Gray color for owned items
+    } else {
+        this.mintText.setText(`Press M to mint ${itemName.replace(/_/g, ' ')}`);
+        this.mintText.setStyle({ color: '#ffff00' }); // Yellow for available items
+    }
   }
 
   async mintItem(itemName) {
@@ -990,7 +997,17 @@ export class HomeScene extends Phaser.Scene {
 
         console.log("Mint successful!", result);
         mintingStatusText.setText(`${itemName} minted successfully!`);
+        
+        // Immediately update the inventory state
+        this.playerInventory.add(itemName);
+        
+        // Update the blockchain inventory to confirm
         await this.updateInventory();
+        
+        // Update the current mint zone text if player is still in it
+        if (this.activeMintZone && this.activeMintZone.itemName === itemName) {
+            this.mintText.setText(`You already own the ${itemName.replace(/_/g, ' ')}`);
+        }
 
     } catch (error) {
         console.error("Minting failed:", error);
