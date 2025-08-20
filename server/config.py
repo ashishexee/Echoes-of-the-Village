@@ -1,77 +1,63 @@
 # config.py
 # This file contains the static, base data for the game world.
-# It defines the characters, items, and locations that the LLM can use to build a mystery.
+# It defines the characters that the LLM can use to build a mystery.
 
 VILLAGER_ROSTER = [
     {
-        "name": "Arthur the Woodcutter",
-        "title": "A kind-faced old man in a cottage",
+        "name": "Arthur Hobbs",
+        "title": "An old man in the cottage to the northwest",
         "location": "Woodcutter's Cottage",
-        "backstory": "Arthur is the heart of the village, a man who has lived here his entire life and acts as its unofficial caretaker. It was he who found you by the car wreck and brought you to safety. He is genuinely kind and helpful, but his deep love for the village and its traditions makes him hesitant to speak about the darker secrets that lie beneath the surface. He believes protecting the community's peace is more important than uncovering painful truths.",
+        "backstory": "Arthur is the closest thing the village has to an elder. He's lived here his whole life and found you by the wreck. He's genuinely kind and helpful, but his deep love for the community makes him protective of its peace, and he's often hesitant to speak on darker topics.",
         "personality_traits": {"truthfulness": 4, "verbosity": 3, "sarcasm": 1, "fearfulness": 3, "mystery": 3, "humor": 2, "helpfulness": 5}
     },
     {
-        "name": "Old Mara",
-        "title": "A gruff woman by the river",
-        "location": "Foggy Riverbed",
-        "backstory": "Mara's life was shattered when she lost her son in a great flood years ago. Grief has hardened her into a cynical, sarcastic shell. She spends her days by the river, speaking to the water as if it holds the answers. While she seems unhelpful, her sharp wit hides a deep-seated knowledge of the village's natural dangers and forgotten history. She respects persistence but has no time for fools.",
-        "personality_traits": {"truthfulness": 3, "verbosity": 2, "sarcasm": 5, "fearfulness": 2, "mystery": 3, "humor": 3, "helpfulness": 2}
+        "name": "Sam",
+        "title": "A young man near a grove of trees",
+        "location": "Grove of Trees",
+        "backstory": "Sam isn't fond of farm work and spends most of his days daydreaming under the trees. While some see him as lazy, his constant, quiet observation means he often notices small details that others are too busy to see. He's not very proactive, but he's a truthful witness if you can get him to focus.",
+        "personality_traits": {"truthfulness": 5, "verbosity": 2, "sarcasm": 2, "fearfulness": 3, "mystery": 2, "humor": 3, "helpfulness": 2}
     },
     {
-        "name": "Father Elias",
-        "title": "A robed figure in the temple ruins",
-        "location": "Abandoned Temple",
-        "backstory": "A man of unwavering, fanatical faith, Elias was defrocked for practicing unsanctioned rituals. He sees the village's isolation as a holy trial and speaks in cryptic parables, believing direct answers are a form of blasphemy. He protects a dark secret about the village's founding, viewing it as a sacred trust. He is not malicious, but his worldview is so esoteric that extracting a straight answer from him is a monumental task.",
-        "personality_traits": {"truthfulness": 2, "verbosity": 4, "sarcasm": 1, "fearfulness": 3, "mystery": 5, "humor": 1, "helpfulness": 1}
+        "name": "Elias",
+        "title": "An old man in a robe near the western fields",
+        "location": "The Western Fields",
+        "backstory": "Elias follows the 'old ways,' folk traditions tied to the harvest and the seasons that most of the village has forgotten. He's wise and sees the world in terms of signs and omens. The villagers respect him but also keep their distance, finding his beliefs unsettling.",
+        "personality_traits": {"truthfulness": 3, "verbosity": 3, "sarcasm": 1, "fearfulness": 2, "mystery": 5, "humor": 1, "helpfulness": 3}
     },
     {
-        "name": "Jacob the Gravedigger",
-        "title": "A man leaning on a shovel in the cemetery",
-        "location": "Cemetery",
-        "backstory": "Jacob is a man haunted by the past. A plague swept through the village decades ago, and he buried nearly everyone he knew, including his family. He uses alcohol and gallows humor to cope with the memories. In his rare moments of sobriety, his mind is terrifyingly sharp, but he often confuses the living with the dead, offering clues wrapped in morbid jokes or drunken ramblings.",
-        "personality_traits": {"truthfulness": 4, "verbosity": 3, "sarcasm": 4, "fearfulness": 4, "mystery": 2, "humor": 4, "helpfulness": 3}
+        "name": "Leo",
+        "title": "A farmer working in the southern gardens",
+        "location": "Southern Vegetable Gardens",
+        "backstory": "Leo is a simple, hardworking farmer. He believes in what he can see and touch: the soil, his crops, and the weather. He's skeptical of gossip and ghost stories and will dismiss anything that can't be explained with practical logic. He's honest but not very imaginative.",
+        "personality_traits": {"truthfulness": 5, "verbosity": 2, "sarcasm": 3, "fearfulness": 1, "mystery": 1, "humor": 2, "helpfulness": 3}
     },
     {
-        "name": "Ms. Caelia",
-        "title": "A stern woman in the old schoolhouse",
-        "location": "Old Schoolhouse",
-        "backstory": "The former village schoolteacher, Ms. Caelia believes in order, discipline, and earned knowledge. She sees the player as an unruly student and will often demand they solve a riddle or demonstrate intellect before she deems them 'worthy' of information. Her mind is a library of village history, but she is a stern gatekeeper who despises laziness and emotional appeals.",
-        "personality_traits": {"truthfulness": 5, "verbosity": 3, "sarcasm": 3, "fearfulness": 1, "mystery": 3, "humor": 2, "helpfulness": 2}
+        "name": "Markus",
+        "title": "A blond man standing by the stone house",
+        "location": "Center of Town",
+        "backstory": "As the village carpenter, Markus is proud of his work and his town. He's strong, dependable, and sees himself as a pillar of the community. He's friendly and helpful to a fault but has a blind spot for any negativity within the village, preferring to believe everything is perfect.",
+        "personality_traits": {"truthfulness": 3, "verbosity": 4, "sarcasm": 1, "fearfulness": 2, "mystery": 2, "humor": 3, "helpfulness": 4}
     },
     {
-        "name": "Elric the Tailor",
-        "title": "A nervous-looking man in a tailor's shop",
-        "location": "Tailor's Shop",
-        "backstory": "Timid and soft-spoken, Elric is the village's eyes and ears. From his shop window, he sees all comings and goings. He is terrified of conflict and will often lie or feign ignorance if he feels threatened, but his conscience gnaws at him. He wants to help but is paralyzed by fear, often giving information in frantic, whispered bursts before retreating.",
-        "personality_traits": {"truthfulness": 2, "verbosity": 2, "sarcasm": 1, "fearfulness": 5, "mystery": 2, "humor": 1, "helpfulness": 4}
+        "name": "Edward Gable",
+        "title": "A man standing at the entrance to his house",
+        "location": "A Neat House on the Main Road",
+        "backstory": "Edward is the retired village schoolmaster. He believes in order, discipline, and facts. He is very prim and proper, and dislikes emotional outbursts or lazy thinking. His mind is a library of village history, but he'll only share information if he deems you worthy of it.",
+        "personality_traits": {"truthfulness": 5, "verbosity": 3, "sarcasm": 4, "fearfulness": 1, "mystery": 3, "humor": 1, "helpfulness": 2}
     },
     {
-        "name": "Silas the Hunter",
-        "title": "A rugged man outside a remote cabin",
-        "location": "Hunter's Cabin",
-        "backstory": "Silas turned his back on the village long ago, preferring the solitude of the forest. He is a rugged survivalist who speaks in short, practical terms. He views the village as a source of corruption and only interacts when necessary. He knows the hidden paths and natural secrets of the land, but sharing that knowledge depends on whether he thinks you're worthy of surviving the woods.",
-        "personality_traits": {"truthfulness": 4, "verbosity": 1, "sarcasm": 3, "fearfulness": 1, "mystery": 4, "humor": 1, "helpfulness": 3}
-    },
-    {
-        "name": "Dr. Alistair Finch",
-        "title": "An elderly doctor in the village square",
-        "location": "Village Square",
-        "backstory": "The village doctor is a man of science, but his advanced age has made his mind a cluttered attic of facts. He keeps meticulous records but can rarely find the one he needs. He is kind and genuinely wants to help, but his thoughts often wander into long, tangential stories about past patients, often burying crucial details in a sea of irrelevant information.",
-        "personality_traits": {"truthfulness": 5, "verbosity": 5, "sarcasm": 1, "fearfulness": 3, "mystery": 1, "humor": 3, "helpfulness": 4}
-    },
-    {
-        "name": "Genevieve the Innkeeper",
-        "title": "A cheerful woman polishing a glass",
-        "location": "The Weary Traveler Inn",
-        "backstory": "Genevieve runs the only inn in the village, a hub of gossip and quiet deals. She maintains a professional, cheerful demeanor at all times, using her warm humor to disarm visitors and locals alike. She hears everything but volunteers nothing, preferring to trade information like currency. Her helpfulness is directly proportional to what she thinks she can get in return.",
+        "name": "Gavin",
+        "title": "A man in an apron near the well",
+        "location": "The Town Well",
+        "backstory": "Gavin runs the local inn and the well is his main source of water and gossip. He's professionally cheerful and knows how to make people talk. He hears everything but volunteers nothing, seeing information as a commodity to be traded.",
         "personality_traits": {"truthfulness": 3, "verbosity": 4, "sarcasm": 2, "fearfulness": 2, "mystery": 4, "humor": 4, "helpfulness": 3}
     },
     {
-        "name": "Little Nia",
-        "title": "A small, quiet child",
-        "location": "Anywhere",
-        "backstory": "Nia is not like the others. She appears and vanishes without a sound, often seen humming by the lake or drawing strange symbols in the dirt. It's unclear if she is a ghost, a hallucination, or something else entirely. She never speaks directly, communicating only in riddles or through the cryptic pictures she draws, which sometimes foretell the future... or the past.",
-        "personality_traits": {"truthfulness": 3, "verbosity": 1, "sarcasm": 1, "fearfulness": 2, "mystery": 5, "humor": 1, "helpfulness": 2}
+        "name": "Father Thomas",
+        "title": "A man in a grey robe beside the church",
+        "location": "Outside the Old Church",
+        "backstory": "Thomas is the village priest, but a crisis of faith has left him quiet and withdrawn. He performs his duties but is deeply troubled by the strange 'feeling' in the village, which seems to mock his beliefs. He speaks in thoughtful, hesitant sentences, afraid of both offending God and ignoring the truth.",
+        "personality_traits": {"truthfulness": 2, "verbosity": 2, "sarcasm": 1, "fearfulness": 4, "mystery": 4, "humor": 1, "helpfulness": 2}
     }
 ]
 

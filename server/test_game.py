@@ -23,7 +23,7 @@ def start_conversation_loop(game_id, villager_id, villager_name):
     """Manages a continuous, interactive conversation with an NPC via API calls."""
     print(f"\n\n================= CONVERSATION WITH {villager_name.upper()} =================")
     
-    player_input = None # For the first interaction, this is None
+    player_input = "This is the starting prompt of the conversation."
     
     while True:
         interact_payload = {"villager_id": villager_id}

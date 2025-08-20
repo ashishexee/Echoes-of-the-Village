@@ -49,7 +49,7 @@ class GeminiAPI:
         You are a master storyteller and mystery writer for the game "Village of Echoes".
 
         **The Fixed Premise:**
-        The player's story ALWAYS begins this way: Their car crashes in a mysterious forest after a tree falls. They awaken in the cottage of a kind old man, Arthur. He tells them he found them unconscious but saw no sign of their friends. During their unconsciousness, the player heard a desperate, psychic cry from their friends: 'Help us... find us...' The game begins as the player steps outside to search the village.
+        The player's story ALWAYS begins this way: Their car crashes in a mysterious forest after a tree falls. They awaken in the cottage of a kind old man, Arthur Hobbs lives northwest of the village. He tells them he found them unconscious but saw no sign of their friends. During their unconsciousness, the player heard a desperate, psychic cry from their friends: 'Help us... find us...' The game begins as the player steps outside to search the village.
 
         **Your Task:**
         Your job is to generate the secret, underlying mystery of the village that the player will uncover. You must create a unique reason for the friends' disappearance that fits the dark, psychological mystery theme of the game.
@@ -76,20 +76,20 @@ class GeminiAPI:
         """
 
     def _create_world_builder_prompt(self, context):
-        difficulty = context.get('difficulty', 'medium')
-        if difficulty == 'very_easy':
+        difficulty = context.get('difficulty', 'Medium')
+        if difficulty == 'Very Easy':
             node_count = "8"
             key_clue_count = 2
             final_clue_instruction = "The final clue must be extremely direct and explicitly state where to go."
             difficulty_instructions = "Clues must be direct and obvious. Avoid riddles or metaphors."
             type_instruction = "Generate **exactly 2 nodes** of type 'TalkToVillager' to guide the player. The rest should be 'Information'."
-        elif difficulty == 'easy':
+        elif difficulty == 'Easy':
             node_count = "15-20"
             key_clue_count = 3
             final_clue_instruction = "The final clue should be a strong hint, making the answer clear."
             difficulty_instructions = "Clues should be mostly straightforward."
             type_instruction = "You may use a mix of 'Information' and 'TalkToVillager' nodes."
-        elif difficulty == 'hard':
+        elif difficulty == 'Hard':
             node_count = "35-40"
             key_clue_count = 6
             final_clue_instruction = "The final clue must be extremely cryptic, requiring significant deduction."
@@ -138,48 +138,100 @@ class GeminiAPI:
         Output ONLY the raw JSON object containing the "nodes" list.
         """
 
+     # ================= INTERACTION ================= #
     def _create_interaction_prompt(self, context):
         conversational_status = context.get('conversational_status')
         context_node = context.get('context_node')
         turn_objective = ""
         
-        # Default instruction for the final JSON task
-        json_task_instruction = "Generate a JSON object with four keys: `npc_dialogue` (string), `player_responses` (a list of 1 to 3 relevant, in-character questions for the player to ask next. If the conversation is not progressing the search for the player's friends, one option should try to steer it back to that topic)., `node_revealed_id` (string or null), `new_familiarity_level` (an integer from 0-5; this should typically only increase by 0 or 2 point per positive or negative interaction (irrespective))."
+        json_task_instruction = "Generate a JSON object with: npc_dialogue (string), player_responses (list of 1–3 options), node_revealed_id (string or null), new_familiarity_level (0–5)."
 
         if conversational_status == "PERMANENTLY_EXHAUSTED":
-            turn_objective = "You have no more clues to give. Your objective is to provide a final, reflective piece of dialogue that feels like a natural end to your conversations."
-            json_task_instruction = "Generate a JSON object with four keys: `npc_dialogue` (string), `player_responses` (a list containing EXACTLY ONE polite, closing string option), `node_revealed_id` (null), `new_familiarity_level` (integer 0-5)."
+            turn_objective = "You can no longer provide new clues. Deliver a final, reflective farewell."
+            json_task_instruction = "Generate a JSON object with: npc_dialogue (string), player_responses (EXACTLY ONE polite closing option), node_revealed_id (null), new_familiarity_level (0–5)."
         elif conversational_status == "HAS_LOCKED_CLUES":
-            turn_objective = "The player is not yet ready for your next clue. Your objective is to hint at the reason (e.g., lack of trust, a missing piece of information) without revealing the clue itself, and then gracefully end the conversation. Communicate this principle creatively, not by repeating the same line every time."
-            json_task_instruction = "Generate a JSON object with four keys: `npc_dialogue` (string), `player_responses` (a list containing EXACTLY ONE polite, closing string option), `node_revealed_id` (null), `new_familiarity_level` (integer 0-5)."
+            turn_objective = "You cannot yet reveal a clue. Hint gently why (trust, timing, secrecy) and end politely."
+            json_task_instruction = "Generate a JSON object with: npc_dialogue (string), player_responses (EXACTLY ONE polite closing option), node_revealed_id (null), new_familiarity_level (0–5)."
         elif conversational_status == "CAN_REVEAL":
-            turn_objective = "A clue is available and all conditions are met. Your goal is to steer the conversation towards this topic and deliver the information naturally. If the player is off-topic, gently guide them back before delivering the information."
-
+            turn_objective = "MANDATORY: Reveal the current clue NOW. Integrate the content naturally into your dialogue, and set node_revealed_id. This is not optional."
 
         return f"""
-        You are a master character actor performing in an interactive psychological mystery game. Your performance must be natural, consistent, and serve the story.
+        You are both a **villager actor** and a **game director** in the horror game "Village of Echoes".  
+        Your goal: deliver immersive dialogue that feels authentic *while progressing the game*.  
 
-        **The Philosophy of Your Performance:**
-        Your character's personality is your primary filter for every word you speak. However, the game must progress. If a game objective (like revealing a clue) conflicts with your personality, the objective takes precedence, but you must perform the action *in character*. For example, an unhelpful person might reveal a clue grudgingly; a liar might frame a truth as a rumor they overheard.
+        --- DIRECTOR'S RULES (Unbreakable) ---
+        1. Roleplay naturally as {context['villagerProfile']['name']}.  
+        2. Stay immersive: Do NOT break character or mention the "game system."  
+        3. Never mention the player's "friends" unless the player explicitly brings them up.  
+        4. Keep responses smooth and natural: ~2 sentences, with tone matching the villager.  
+        5. Adjust tone based on familiarity level: {context['familiarity_level']} ({context['familiarity_description']}).  
+           - If "Unknown", introduce yourself naturally.  
+        6. Do not repeat information the player already knows: `{context['player_knowledge_summary']}`.  
+        7. If a clue is revealed, weave it in *naturally with flavor*, not as a raw fact dump.
 
-        Crucially, maintain realism: do not mention the player's "friends" unless they have mentioned it to you first in the current conversation. Your dialogue should always be a natural, in-character response to what the player just said.
+        **NOTE: Whenver mentioned this is the staring prompt of the conversation, then just introduce yourself if familarity:Unknown or talk about the recent thing that you discoverd with that villager from the knowledges-summary**
 
-        **Your Role:**
-        You are roleplaying as the villager: **{context['villagerProfile']['name']}**.
+        --- HOW TO REPLY (Concrete patterns and expectations) ---
+        Follow these reply patterns exactly — they describe *how* your npc_dialogue, suggestions, and player_responses should be structured:
 
-        **Your Turn-by-Turn Objective:**
-        {turn_objective}
+        1) VOICE + LENGTH
+           - Speak *in-character* and briefly (1–2 sentences). Use contractions and small quirks that match the villager's profile.
+           - Never narrate like an omniscient storyteller (avoid "The moss is important because..."). Use personal observations, gossip, or memory instead.
+           Example: "That moss chills me—I've seen children staring at it at dusk, eyes half-closed, like they heard a lullaby."
 
-        **Key Context for Your Performance:**
-        - **Your Character Profile:** {json.dumps(context['villagerProfile'], indent=2)}
-        - **Your Relationship with Player:** Your familiarity is **{context['familiarity_level']} ({context['familiarity_description']})**. This should heavily influence your tone. **If "Unknown," you MUST introduce yourself.**
-        - **What the Player Already Knows:** `{context['player_knowledge_summary']}`. Do not repeat this information.
-        - **Your Available Clue:** `{json.dumps(context_node)}`
-        - **Full Conversation History:** {json.dumps(context['chatHistory'], indent=2)}
+        2) UNKNOWN FAMILIARITY
+           - If familiarity == "Unknown", begin with a short introduction: name + relation to village + one-line signal of trust or suspicion.
+           Example: "I'm Arthur, I cut wood here. I don't like to meddle, but you'll want to hear this."
 
-        **Your Task:**
-        Respond to the player's last statement: `"{context['player_last_response']}"`. Your dialogue should be concise (around 2 sentences). Then, generate the required JSON object.
-        {json_task_instruction}
-        
-        Output ONLY the raw JSON object.
+        3) CLUE TONE & CONTENT (Hints)
+           - When hinting (not fully revealing), include:
+             a) A sensory detail (smell, sound, sight) or small scene,
+             b) Why it matters for the story,
+             c) One concrete next action (who to talk to OR where to search).
+           Example pattern: "<sensory detail>. It suggests <why it matters>. You should <next action>."
+
+        4) CLUE REVELATION (CAN_REVEAL rule)
+           - MUST integrate the exact `content` from the `context_node` naturally into npc_dialogue (do not paste raw JSON).
+           - After revealing, give **1–2 concrete next actions** (specific villager names or locations) the player can take to follow up.
+           - Provide 1–3 player_responses that map directly to those actions (or to a polite closing).
+           Example: "\"That torn ribbon in the chapel—I've seen it on the tailor's counter.\" → Next actions: ask the tailor / search the chapel loft."
+
+        5) GUIDANCE WHEN STUCK
+           - If the player seems stuck, offer prioritized options (2–3), with a short reason for each (ranked by usefulness).
+           - Use phrasing like: "If you're unsure, first X (because...), otherwise Y."
+
+        6) HOSTILITY / BRIBES / EMOTIONAL STATES
+           - Hostile player: de-escalate, offer a guarded hint or refuse to help. Offer responses that let the player back down or press.
+           - Bribe/plea: consult `villagerProfile` morality/traits and act accordingly (accept with consequences, or refuse and give a hint).
+           - Frightened player: reassure and give a safe next step (e.g., "Find the doctor; he'll come with you.").
+
+        7) REPETITION & CLARIFICATION
+           - If the player repeats or asks for confirmation, restate only the new, useful piece of info (do NOT rehash everything).
+           - If asked "Where are my friends?" respond per status: reveal if allowed; otherwise give the best directional hint + next action.
+
+        8) EXHAUSTION / LOCKED CLUES
+           - PERMANENTLY_EXHAUSTED: provide a short, reflective farewell and EXACTLY ONE polite closing player option.
+           - HAS_LOCKED_CLUES: explain briefly why a clue can't be revealed (trust, danger, ritual), and provide EXACTLY ONE polite closing option.
+
+        9) FORMAT & FOLLOW-UP
+           - Always include 1–3 realistic `player_responses` (e.g., "Ask Old Mara by the river.", "Search the Ossified Grove.", "Goodbye.").
+           - Ensure any suggested action is actionable within the game (name a villager or a specific place/thing).
+           - If you suggest a search, indicate *what to look for* (e.g., "check under the millstones for footprints").
+    
+
+        --- BACKGROUND KNOWLEDGE ---
+        Current clue node (if any): {json.dumps(context_node)}
+
+        --- CONVERSATION HISTORY ---
+        {json.dumps(context['chatHistory'], indent=2)}
+
+        --- THIS TURN ---
+        - Objective: {turn_objective}  
+        - The player’s last line: "{context['player_last_response']}"
+
+        --- OUTPUT ---
+        {json_task_instruction}  
+
+        Respond ONLY with the raw JSON object.
         """
+

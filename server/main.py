@@ -88,8 +88,11 @@ async def interact(game_id: str, request: InteractRequest):
             raise HTTPException(status_code=400, detail="Invalid villager ID.")
             
         villager_name = game_state.villagers[villager_index]["name"]
-        
-        frustration = {"friends": len([msg for msg in game_state.full_npc_memory.get(villager_name, []) if "friend" in msg.get("content", "").lower()])}
+        # FIX: Add a check to ensure msg.get('content') is not None before calling .lower()
+        frustration = {"friends": len([
+            msg for msg in game_state.full_npc_memory.get(villager_name, [])
+            if msg.get("content") and "friend" in msg.get("content").lower()
+        ])}
         player_input = request.player_prompt if request.player_prompt is not None else "I'd like to talk."
 
         dialogue_data = game_engine.process_interaction_turn(game_state, villager_name, player_input, frustration)

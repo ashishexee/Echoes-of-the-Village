@@ -9,13 +9,15 @@ let currentGameId = null;
 async function startNewGame(difficulty) {
   try {
     console.log("Difficulty level - ",difficulty);
-    
     const response = await fetch(`${API_BASE_URL}/game/new`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+      'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ difficulty: difficulty }),
+      body: JSON.stringify({
+      difficulty: difficulty,
+      num_inaccessible_locations: 5,
+      }),
     });
 
     if (!response.ok) {
