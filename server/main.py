@@ -132,8 +132,6 @@ async def guess(game_id: str, request: GuessRequest):
     else:
         message = f"You find nothing but silence and dust at {request.location_name}. Your friends are gone forever. The correct location was {game_state.correct_location}. GAME OVER."
 
-    del active_games[game_id]
-
     return GuessResponse(
         message=message,
         is_correct=is_correct,
