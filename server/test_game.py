@@ -74,12 +74,13 @@ def main():
     difficulty_choice = ""
     while difficulty_choice not in ['1', '2', '3']:
         print("Choose a difficulty:")
-        print("  1. Easy")
-        print("  2. Medium")
-        print("  3. Hard")
-        difficulty_choice = input("Your choice (1-3): ").strip()
+        print("  1. Very Easy")
+        print("  2. Easy")
+        print("  3. Medium")
+        print("  4. Hard")
+        difficulty_choice = input("Your choice (1-4): ").strip()
         
-    difficulty_map = {'1': 'easy', '2': 'medium', '3': 'hard'}
+    difficulty_map = {'1': 'very_easy', '2': 'easy', '3': 'medium', '4': 'hard'}
     
     game_data = start_new_game(difficulty_map[difficulty_choice])
     if not game_data:
