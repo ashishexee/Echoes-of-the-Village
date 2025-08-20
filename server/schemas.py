@@ -7,7 +7,7 @@ from typing import List, Dict, Optional
 
 class NewGameRequest(BaseModel):
     difficulty: str = "medium"
-    num_inaccessible_locations: int = 3
+    num_inaccessible_locations: int = 5
 
 class NewGameResponse(BaseModel):
     game_id: str
