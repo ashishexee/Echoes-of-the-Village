@@ -326,6 +326,8 @@ export class WalletScene extends Phaser.Scene {
         return;
       }
 
+      console.log("User not registered, registering and setting initial score to 10,000...");
+
       const tx = new Transaction();
       
       tx.moveCall({
@@ -336,11 +338,20 @@ export class WalletScene extends Phaser.Scene {
         ],
       });
 
+      tx.moveCall({
+        target: `${PACKAGE_ID}::${MODULE_NAME}::update_score`,
+        arguments: [
+          tx.object(SCORES_OBJECT_ID),
+          tx.pure.address(this.userAddress),
+          tx.pure.u64(10000)
+        ],
+      });
+
       const result = await walletProvider.signAndExecuteTransaction({
         transaction: tx,
       });
 
-      console.log("User registered successfully!", result);
+      console.log("User registered and score set to 10,000 successfully!", result);
       
       this.proceedToGame();
 
