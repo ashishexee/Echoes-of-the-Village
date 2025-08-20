@@ -33,11 +33,10 @@ export class ItemLockScene extends Phaser.Scene {
             .lineStyle(2, 0xd4af37, 1)
             .strokeRoundedRect(panelX - panelWidth / 2, panelY - panelHeight / 2, panelWidth, panelHeight, 16);
 
-        // Display Villager Info
         const villagerInfo = this.gameData.villagers.find(v => v.id === this.villager.name);
         const requiredItemName = this.villager.requiredItem.replace(/_/g, ' ');
 
-        this.add.text(panelX, panelY - panelHeight / 2 + 50, `${villagerInfo.name} requires an item`, {
+        this.add.text(panelX, panelY - panelHeight / 2+ 50, `Villager Requires ${requiredItemName}`, {
             fontFamily: 'Georgia, serif', fontSize: '32px', color: '#ffffff', align: 'center'
         }).setOrigin(0.5);
 
