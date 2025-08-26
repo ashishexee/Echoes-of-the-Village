@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
+import { pingServer } from "../api";
 
 export class WalletScene extends Phaser.Scene {
   constructor() {
@@ -236,6 +237,7 @@ export class WalletScene extends Phaser.Scene {
   }
 
   async connectWallet() {
+     pingServer();
     if (!this.scale.isFullscreen) {
       this.scale.startFullscreen();
     }
