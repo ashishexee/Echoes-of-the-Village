@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://echoes-server-v4mk.onrender.com"; 
+const API_BASE_URL = "https://echoes-server-1.onrender.com"; 
 let currentGameId = null;
 
 /**
