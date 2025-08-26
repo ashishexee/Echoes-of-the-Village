@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
+import { pingServer } from "../api";
 
 export class WalletScene extends Phaser.Scene {
   constructor() {
@@ -118,18 +119,6 @@ export class WalletScene extends Phaser.Scene {
       () => this.connectWallet()
     );
 
-    const skipText = this.add
-      .text(centerX, centerY + 120, "[DEV] Skip and Play", {
-        fontFamily: "Arial",
-        fontSize: "16px",
-        color: "#aaaaaa",
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-
-    skipText.on("pointerover", () => skipText.setColor("#ffffff"));
-    skipText.on("pointerout", () => skipText.setColor("#aaaaaa"));
-    skipText.on("pointerdown", () => this.scene.start("LoadingScene", { nextScene: 'HomeScene' }));
   }
 
   createButton(x, y, text, callback) {
@@ -236,6 +225,7 @@ export class WalletScene extends Phaser.Scene {
   }
 
   async connectWallet() {
+     pingServer();
     if (!this.scale.isFullscreen) {
       this.scale.startFullscreen();
     }
