@@ -119,18 +119,6 @@ export class WalletScene extends Phaser.Scene {
       () => this.connectWallet()
     );
 
-    const skipText = this.add
-      .text(centerX, centerY + 120, "[DEV] Skip and Play", {
-        fontFamily: "Arial",
-        fontSize: "16px",
-        color: "#aaaaaa",
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true });
-
-    skipText.on("pointerover", () => skipText.setColor("#ffffff"));
-    skipText.on("pointerout", () => skipText.setColor("#aaaaaa"));
-    skipText.on("pointerdown", () => this.scene.start("LoadingScene", { nextScene: 'HomeScene' }));
   }
 
   createButton(x, y, text, callback) {
