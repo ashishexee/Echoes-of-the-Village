@@ -99,7 +99,6 @@ async function chooseLocation(location) {
     }
 
     const data = await response.json();
-    console.log(`Location choice '${location}' sent successfully. Response:`, data);
     return data;
 
   } catch (error) {
