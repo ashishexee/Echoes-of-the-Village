@@ -224,25 +224,67 @@ export class UIScene extends Phaser.Scene {
             feedbackText.setText(`Investigation successful!`);
 
             // Wait a moment to show the success message before transitioning
-            this.time.delayedCall(1500, () => {
+            this.time.delayedCall(1500, async () => {
                 const homeScene = this.scene.get('HomeScene');
-                // --- Implement the Fair Scoring System ---
-                const baseScore = 10000;
+                
+                // --- Fetch current score from blockchain ---
+                let baseScore = 0;
+                try {
+                    // Try to get the current blockchain score
+                    if (this.account && window.onechainWallet) {
+                        feedbackText.setText(`Fetching your score from blockchain...`);
+                        
+                        const PACKAGE_ID = "0xf7fd6f8b100f786fcda885db47807a53af18562abc37485da97eab52ee85c6a9";
+                        const MODULE_NAME = "contract_one";
+                        const SCORES_OBJECT_ID = "0x8ecdcbfb483d5aae0a22ad90d2412c15fe102b62e1cb0cc3e9e6df05e23839b6";
+                        
+                        // Call the get_score function to retrieve current score
+                        const { data } = await window.onechainWallet.signAndExecuteTransaction({
+                            transaction: {
+                                kind: "moveCall",
+                                data: {
+                                    packageObjectId: PACKAGE_ID,
+                                    module: MODULE_NAME,
+                                    function: "get_score",
+                                    typeArguments: [],
+                                    arguments: [
+                                        SCORES_OBJECT_ID,
+                                        this.account.address
+                                    ],
+                                    gasBudget: 10000000
+                                }
+                            }
+                        });
+                        
+                        if (data && data.returnValues && data.returnValues.length > 0) {
+                            baseScore = Number(data.returnValues[0][0]);
+                            console.log("Current blockchain score:", baseScore);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error fetching blockchain score:", error);
+                    // Fallback to default score
+                    baseScore = 0;
+                }
+                
+                // If we couldn't get a score or it's 0, use a small starting score
+                baseScore = baseScore || 1000;
+                
                 const minutes = Math.floor(this.elapsedSeconds / 60);
                 const timePenalty = minutes * 50;
-                // homeScene.guessCount tracks incorrect guesses
                 const guessPenalty = (homeScene.guessCount) * 1500;
                 const nftBonus = homeScene.playerInventory.size * 250;
                 const trueEndingBonus = result.is_true_ending ? 500 : 0;
                 let finalScore = baseScore - timePenalty - guessPenalty + nftBonus + trueEndingBonus;
                 // Ensure the score is not negative
                 finalScore = Math.max(0, finalScore);
+                
                 const endData = {
                     isCorrect: result.is_correct,
                     isTrueEnding: result.is_true_ending,
                     score: finalScore,
                     time: this.formatTime(this.elapsedSeconds),
-                    guesses: homeScene.guessCount + 1, // Include the final correct guess
+                    guesses: homeScene.guessCount + 1,
                     nfts: homeScene.playerInventory.size,
                     account: this.account,
                     suiClient: this.suiClient,
@@ -251,7 +293,7 @@ export class UIScene extends Phaser.Scene {
 
                 // Stop the game scenes and launch the EndScene
                 this.scene.stop('HomeScene');
-                this.scene.stop(); // Stop the UIScene itself
+                this.scene.stop();
                 this.scene.start('EndScene', endData);
             });
         } else {
