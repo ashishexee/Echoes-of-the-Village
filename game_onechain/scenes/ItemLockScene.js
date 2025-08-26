@@ -96,8 +96,23 @@ export class ItemLockScene extends Phaser.Scene {
 
             await window.onechainWallet.signAndExecuteTransaction({ transaction: tx });
 
+            // Get a reference to HomeScene to update its inventory directly
+            const homeScene = this.scene.get('HomeScene');
+            if (homeScene && homeScene.playerInventory) {
+                // Remove the item from the local inventory immediately
+                homeScene.playerInventory.delete(this.villager.requiredItem);
+            }
+
             this.statusText.setText("Trade successful! The villager will talk to you now.");
             this.events.emit('villagerUnlocked', this.villager.name);
+            
+            // Update the parent scene's inventory from blockchain
+            this.time.delayedCall(500, () => {
+                if (homeScene) {
+                    homeScene.updateInventory();
+                }
+            });
+
             this.time.delayedCall(2000, () => this.closeScene());
 
         } catch (error) {

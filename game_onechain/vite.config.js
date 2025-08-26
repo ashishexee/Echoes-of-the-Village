@@ -1,5 +1,5 @@
 export default {
-  base: '/onechain/',
+  base: '/',
   server: {
     open: true,
     port : 5174

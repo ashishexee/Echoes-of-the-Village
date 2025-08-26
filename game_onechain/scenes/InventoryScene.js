@@ -7,7 +7,13 @@ export class InventoryScene extends Phaser.Scene {
     }
 
     init(data) {
-        this.inventory = data.inventory || [];
+        // Always get fresh inventory data from HomeScene
+        const homeScene = this.scene.get('HomeScene');
+        if (homeScene && homeScene.playerInventory) {
+            this.inventory = Array.from(homeScene.playerInventory);
+        } else {
+            this.inventory = data.inventory || [];
+        }
     }
 
     create() {
