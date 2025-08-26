@@ -259,6 +259,9 @@ export class HomeScene extends Phaser.Scene {
     this.gameData = { game_id, inaccessible_locations, villagers };
     console.log("Game data initialized:", this.gameData);
 
+    // Set up event listener for ItemLockScene
+    this.events.on('villagerUnlocked', this.unlockVillager, this);
+
     if (this.scene.get('ItemLockScene')) {
         this.scene.get('ItemLockScene').events.on('villagerUnlocked', this.unlockVillager, this);
     }
@@ -303,7 +306,12 @@ export class HomeScene extends Phaser.Scene {
     }
 
     if (!this.scene.isActive('UIScene')) {
-        this.scene.launch('UIScene', {account: this.account, suiClient: this.suiClient, inaccessibleLocations: this.gameData.inaccessible_locations });
+        this.scene.launch('UIScene', {
+            account: this.account, 
+            suiClient: this.suiClient, 
+            inaccessibleLocations: this.gameData.inaccessible_locations,
+            difficulty: this.difficulty 
+        });
     }
 
     this.lights.enable();
@@ -943,6 +951,7 @@ export class HomeScene extends Phaser.Scene {
     if (villager) {
         console.log(`Unlocking villager: ${villagerName}`);
         villager.requiredItem = null;
+        // Force update inventory from blockchain after unlocking
         this.updateInventory();
     }
   }

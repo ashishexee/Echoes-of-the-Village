@@ -26,7 +26,14 @@ export class MenuScene extends Phaser.Scene {
         if (data && data.account) {
             this.walletAddress = data.account;
         }
-        this.suiClient = data.suiClient;
+        // Make sure we're properly capturing the suiClient from data
+        this.suiClient = data && data.suiClient ? data.suiClient : null;
+        
+        // Log the data for debugging
+        console.log("MenuScene initialized with:", {
+            walletAddress: this.walletAddress,
+            suiClient: this.suiClient ? "suiClient present" : "no suiClient"
+        });
     }
 
     preload() {

@@ -9,6 +9,7 @@ export class UIScene extends Phaser.Scene {
         this.inaccessibleLocations = [];
         this.account = null;
         this.suiClient = null;
+        this.difficulty = 'Easy';
         this._locationOverlay = null;
         this.locationButton = null;
         this.locationButtonEnabled = false;
@@ -20,6 +21,7 @@ export class UIScene extends Phaser.Scene {
             this.inaccessibleLocations = data.inaccessibleLocations;
             this.account = data.account;
             this.suiClient = data.suiClient;
+            this.difficulty = data.difficulty || 'Easy';
         }
     }
 
@@ -244,6 +246,7 @@ export class UIScene extends Phaser.Scene {
                     nfts: homeScene.playerInventory.size,
                     account: this.account,
                     suiClient: this.suiClient,
+                    difficulty: this.difficulty,
                 };
 
                 // Stop the game scenes and launch the EndScene

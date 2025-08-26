@@ -8,7 +8,6 @@ export class EndScene extends Phaser.Scene {
     }
 
     init(data) {
-        // Receive all the final stats from HomeScene
         this.endGameData = data;
     }
 
@@ -19,7 +18,6 @@ export class EndScene extends Phaser.Scene {
         const centerX = this.cameras.main.centerX;
         const centerY = this.cameras.main.centerY;
 
-        // Display a title based on whether the guess was correct
         const titleText = this.endGameData.isCorrect ? 'Mystery Solved!' : 'Case Closed...';
         const titleColor = this.endGameData.isCorrect ? '#2ecc71' : '#e74c3c';
 
@@ -32,7 +30,6 @@ export class EndScene extends Phaser.Scene {
             strokeThickness: 4
         }).setOrigin(0.5);
 
-        // Display the "True Ending" message if applicable
         if (this.endGameData.isTrueEnding) {
             this.add.text(centerX, centerY - 140, 'You uncovered the true story!', {
                 fontFamily: 'Arial',
@@ -42,7 +39,6 @@ export class EndScene extends Phaser.Scene {
             }).setOrigin(0.5);
         }
 
-        // Display the final stats
         const stats = [
             `Final Score: ${this.endGameData.score}`,
             `Total Time: ${this.endGameData.time}`,
@@ -57,43 +53,38 @@ export class EndScene extends Phaser.Scene {
             align: 'center',
             lineSpacing: 20
         }).setOrigin(0.5);
-
-        // --- Buttons ---
-        const playAgainButton = this.add.text(centerX, centerY + 180, 'Play Again', { fontSize: '32px', fill: '#2ecc71' })
+        const mainMenuButton = this.add.text(centerX, centerY + 200, 'Return to Main Menu', { 
+            fontSize: '32px', 
+            fill: '#2ecc71',
+            padding: { x: 20, y: 10 }
+        })
             .setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
             .on('pointerdown', () => {
-                // Reset timer for the next game
                 this.registry.set('elapsedTime', 0);
-                this.scene.start('HomeScene', { 
+                this.scene.start('MenuScene', { 
                     account: this.endGameData.account,
-                    suiClient: this.endGameData.suiClient, // Pass suiClient as well
+                    suiClient: this.endGameData.suiClient
                 });
-            });
-
-        const mainMenuButton = this.add.text(centerX, centerY + 250, 'Main Menu', { fontSize: '24px', fill: '#cccccc' })
-            .setOrigin(0.5)
-            .setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => {
-                this.registry.set('elapsedTime', 0);
-                this.scene.start('MenuScene', { account: this.endGameData.account });
-            });
+            })
+            .on('pointerover', () => mainMenuButton.setStyle({ fill: '#4aff9f' }))
+            .on('pointerout', () => mainMenuButton.setStyle({ fill: '#2ecc71' }));
 
         // Add a text element to show the submission status
-        this.submissionStatusText = this.add.text(centerX, centerY + 300, '', {
+        this.submissionStatusText = this.add.text(centerX, centerY + 270, '', {
             fontFamily: 'Arial',
             fontSize: '18px',
             color: '#d4af37'
         }).setOrigin(0.5);
             
-        // Automatically submit the score to the blockchain if it's greater than 0
         if (this.endGameData.score > 0) {
             this.submitScore(this.endGameData.score);
         }
     }
 
     async submitScore(finalScore) {
-        const { account, walletProvider } = this.endGameData;
+        const { account } = this.endGameData;
+        const walletProvider = window.onechainWallet;
 
         if (!account || !walletProvider) {
             this.submissionStatusText.setText('Wallet not connected. Cannot submit score.');
