@@ -10,6 +10,9 @@ A relaxing trip with friends takes a horrifying turn. A sudden, violent accident
 
 Your journey begins with a mysterious, disembodied voice guiding you, its words echoing in your mind. This voice, powered by Text-to-Speech (TTS), sets the stage for the mystery that lies ahead. The villagers are wary, their memories fragmented, and their secrets buried deep. You must piece together the puzzle of what happened to your friends and find a way to rescue them before it's too late.
 
+
+![Conversation screen](game_onechain/public/assets/images/readme_images/menuscene.jpg)
+
 ---
 
 ## Gameplay & Features
@@ -24,6 +27,9 @@ The core of the game is a race against time to solve a dynamically generated mys
 * **Trade for Hints**: Some villagers are more forthcoming than others. The "greedy" ones may hold vital information but will only share it in exchange for one of the on-chain Objects you've discovered. This creates a unique in-game economy where you must decide which items to trade to advance the story.
 * **The Final Accusation**: After a set amount of time (currently 5 seconds for demo purposes), you will be allowed to make your final guess. Using the clues you've gathered, you must choose the correct location where your friends are trapped.
 * **On-Chain Scoring**: Your performance is calculated based on time taken, number of guesses, and Objects collected. This final score is recorded on the OpenChain blockchain via a Move smart contract, creating a permanent, transparent record of your achievement.
+
+* 
+![Conversation screen](game_onechain/public/assets/images/readme_images/makingmystery.jpg)
 
 ---
 
@@ -48,6 +54,9 @@ async def interact(game_id: str, interaction: InteractionRequest):
 
 The backend uses the current game state and the player's chosen suggestion to generate a new, contextually relevant line of dialogue for the villager and a new set of choices for the player. This response is sent back to the game client, and the villager's dialogue is converted to speech using a Text-to-Speech engine, creating an immersive auditory experience.
 
+
+![Conversation screen](game_onechain/public/assets/images/readme_images/conversation.png)
+
 ---
 
 ### 2. On-Chain Assets
@@ -68,11 +77,17 @@ public fun mint_item(name: vector<u8>, description: vector<u8>, ctx: &mut TxCont
 
 When a player finds an item in the game, a transaction is initiated that calls a function like `mint_item`, creating a new **Item object** and transferring it directly to the player's wallet.
 
+
+![Conversation screen](game_onechain/public/assets/images/readme_images/mintnft.jpg)
+
 ---
 
 ### 3. Trading Objects for Information
 
 The true utility of the on-chain Objects comes from trading them. When a player possesses an Object that a villager desires, the game logic allows them to offer it in exchange for a crucial hint. This is handled by the backend's narrative engine, which checks the player's inventory (known to the backend) against the villager's needs before generating the special dialogue branch.
+
+
+![Conversation screen](game_onechain/public/assets/images/readme_images/nftvillager.jpg)
 
 ---
 
@@ -88,6 +103,9 @@ public entry fun update_score(player: address, new_score: u64, ctx: &mut TxConte
     // ...
 }
 ```
+
+
+![Conversation screen](game_onechain/public/assets/images/readme_images/mysterysolved.jpg)
 
 This ensures that high scores are verifiable and cannot be altered, creating a fair and permanent leaderboard.
 
