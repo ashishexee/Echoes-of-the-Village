@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Hero = ({ onPlayClick }) => {
+const Hero = ({ onConnectClick }) => {
   return (
     <div 
       className="h-screen flex flex-col justify-center items-center text-center px-4 relative bg-cover bg-center"
@@ -14,10 +14,10 @@ const Hero = ({ onPlayClick }) => {
           FIND YOUR LOST FRIENDS, UNCOVER THE TRUTH
         </p>
         <button 
-          onClick={onPlayClick}
+          onClick={onConnectClick}
           className="mt-8 px-8 py-3 bg-teal-400 text-teal-900 font-bold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-teal-400/50"
         >
-          Enter the Village
+          Connect Wallet to Begin
         </button>
       </div>
       <div className="absolute bottom-10 z-10 animate-bounce">
