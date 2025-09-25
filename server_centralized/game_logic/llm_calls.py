@@ -234,4 +234,3 @@ class GeminiAPI:
 
         Respond ONLY with the raw JSON object.
         """
-
