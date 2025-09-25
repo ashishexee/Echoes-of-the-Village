@@ -1,20 +1,23 @@
 # game_logic/llm_calls.py
-# Contains the GeminiAPI class and all prompt engineering logic.
+# Contains the API class and all prompt engineering logic.
 
 import json
-import google.generativeai as genai
+import requests # Import the requests library
+# We no longer need the google library
+# import google.generativeai as genai
+
+# Define the URL for our local Node.js bridge server
+OG_BRIDGE_URL = "http://localhost:3001/generate-narrative"
 
 class GeminiAPI:
     def __init__(self, api_key):
-        try:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
-            print("✅ Gemini API configured successfully.")
-        except Exception as e:
-            print(f"❌ Error configuring Gemini API: {e}")
-            self.model = None
+        # The api_key is no longer used for Gemini, but the GameEngine passes it.
+        # We just need to ensure self.model is not None so the checks pass.
+        self.model = True 
+        print("✅ 0G Compute client initialized and ready.")
 
     def _clean_json_response(self, text_response):
+        # This function is still useful as the new model might also wrap JSON in markdown.
         text_response = text_response.strip()
         if text_response.startswith("```json"):
             text_response = text_response[7:]
@@ -24,7 +27,7 @@ class GeminiAPI:
 
     def generate_content(self, prompt_type, context):
         if not self.model: return "{}"
-        print(f"\n--- 🤖 Live Gemini API Call ({prompt_type}) ---")
+        print(f"\n--- 🤖 Calling 0G Compute Bridge ({prompt_type}) ---")
         
         prompts = {
             "StoryGenerator": self._create_story_generator_prompt,
@@ -36,14 +39,28 @@ class GeminiAPI:
             print(f"--- ERROR: No prompt found for type '{prompt_type}' ---")
             return "{}"
 
-        print("--- Sending Prompt to Gemini... (This may take a moment) ---")
+        print("--- Sending Prompt to local bridge... (This may take a moment) ---")
         try:
-            response = self.model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
-            return self._clean_json_response(response.text)
+            # Make a POST request to the Node.js bridge server
+            response = requests.post(OG_BRIDGE_URL, json={"prompt": prompt}, timeout=90)
+            response.raise_for_status()  # Raise an exception for HTTP errors (like 4xx or 5xx)
+
+            data = response.json()
+            # The bridge returns a JSON object like {"narrative": "..."
+            ai_text = data.get("narrative", "{}")
+            
+            # The game engine expects a clean JSON string, so we still use this
+            return self._clean_json_response(ai_text)
+            
+        except requests.exceptions.RequestException as e:
+            print(f"❌ An error occurred during the call to the 0G bridge: {e}")
+            print("--- Is the bridge_server running? Run 'node server.js' in its directory. ---")
+            return "{}"
         except Exception as e:
-            print(f"❌ An error occurred during the API call: {e}")
+            print(f"❌ An unexpected error occurred: {e}")
             return "{}"
 
+    # ================= STORY ================= #
     def _create_story_generator_prompt(self, context):
         return f"""
         You are a master storyteller and mystery writer for the game "Village of Echoes".
@@ -75,6 +92,7 @@ class GeminiAPI:
         Output ONLY the raw JSON object.
         """
 
+    # ================= WORLD ================= #
     def _create_world_builder_prompt(self, context):
         difficulty = context.get('difficulty', 'Medium')
         if difficulty == 'Very Easy':

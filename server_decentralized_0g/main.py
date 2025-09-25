@@ -8,16 +8,17 @@ import uuid
 import os
 import traceback
 import sys
-from dotenv import load_dotenv
 
 from schemas import *
 from game_logic.engine import GameEngine
 from game_logic.state_manager import GameState
 
-# ... (startup code remains the same) ...
-
-# Load environment variables from a .env file if it exists
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    # dotenv not available; rely on actual environment variables
+    pass
 
 # Initialize the FastAPI app and the Game Engine
 app = FastAPI()
@@ -28,7 +29,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-API_KEY = os.environ.get("GOOGLE_API_KEY")
+# REMOVED: This is no longer needed as we are not using the Gemini API directly.
+# API_KEY = os.environ.get("GOOGLE_API_KEY")
 game_engine: GameEngine
 active_games: Dict[str, GameState] = {}
 
@@ -37,14 +39,16 @@ async def startup_event():
     """Initializes the game engine on server startup."""
     global game_engine
     print("--- Server Startup ---")
-    if not API_KEY or API_KEY == "YOUR_GOOGLE_API_KEY_HERE":
-        print("!!! FATAL ERROR: API Key not found. Please set the GOOGLE_API_KEY environment variable. !!!")
-        sys.exit("API Key is not configured. Shutting down.")
     
-    print("API Key found. Initializing Game Engine...")
-    game_engine = GameEngine(api_key=API_KEY)
-    if not game_engine.llm_api.model:
-        sys.exit("Failed to initialize Gemini Model. Please check your API key and network connection.")
+    # MODIFIED: Removed the check for the GOOGLE_API_KEY.
+    # We now initialize the GameEngine directly without a real key.
+    print("Initializing Game Engine for 0G Compute Bridge...")
+    game_engine = GameEngine(api_key="0g_bridge_is_used") # Pass a dummy key
+    
+    # REMOVED: This check was specific to the Gemini model and is no longer relevant.
+    # if not game_engine.llm_api.model:
+    #     sys.exit("Failed to initialize Gemini Model. Please check your API key and network connection.")
+    
     print("Game Engine initialized successfully.")
 
 @app.post("/game/new", response_model=NewGameResponse)

@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://echoes-server-1.onrender.com"; 
+const API_BASE_URL = "http://127.0.0.1:8000"; 
 let currentGameId = null;
 
 /**
@@ -110,14 +110,14 @@ async function chooseLocation(location) {
 /**
  * Pings the server to wake it up if it's on a free hosting service.
  */
-async function pingServer() {
+ async function pingServer() {
   try {
     console.log("Pinging server to wake it up...");
     const response = await fetch(`${API_BASE_URL}/ping/`);
     if (!response.ok) {
       throw new Error(`Ping failed with status: ${response.status}`);
     }
-    const data = await response.json();
+    const data =  await response.json();
     console.log("Server responded to ping:", data.message);
   } catch (error) {
     // This is not a critical error, so we just warn about it.
