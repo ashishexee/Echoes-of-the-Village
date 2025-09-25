@@ -36,4 +36,14 @@ contract GameNFT is ERC721URIStorage, Ownable {
 
         emit ItemMinted(_player, tokenId, _itemType);
     }
+
+    /**
+     * @dev Allows a player to burn (destroy) an item they own.
+     * This is used when trading an item to a villager.
+     * @param tokenId The ID of the token to burn.
+     */
+    function burnItem(uint256 tokenId) public {
+        require(ownerOf(tokenId) == msg.sender, "Only the owner can burn the item");
+        _burn(tokenId);
+    }
 }
