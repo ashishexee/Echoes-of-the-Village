@@ -1,6 +1,8 @@
 import React from 'react';
 
-const Hero = ({ onConnectClick }) => {
+const Hero = ({ onConnectClick, selectedChain, onChainSelect }) => {
+  const chains = ['Flow', '0G', 'World'];
+
   return (
     <div 
       className="h-screen flex flex-col justify-center items-center text-center px-4 relative bg-cover bg-center"
@@ -19,6 +21,24 @@ const Hero = ({ onConnectClick }) => {
         >
           Connect Wallet to Begin
         </button>
+
+        <div className="mt-10 max-w-xs mx-auto">
+          <div className="flex justify-center gap-2 p-1.5 bg-black/20 border border-teal-400/20 rounded-full">
+            {chains.map((chain) => (
+              <button
+                key={chain}
+                onClick={() => onChainSelect(chain)}
+                className={`w-full px-5 py-2 text-sm font-semibold rounded-full transition-all duration-200
+                  ${selectedChain === chain 
+                    ? 'bg-teal-400 text-teal-900 shadow-lg shadow-teal-400/30' 
+                    : 'text-teal-200 hover:bg-teal-500/10'}`
+                }
+              >
+                {chain}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
       <div className="absolute bottom-10 z-10 animate-bounce">
         <svg className="w-8 h-8 text-teal-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>

@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ethers } from 'ethers';
-import PhaserGame from './components/PhaserGame';
 import Hero from './components/landing';
 import IntroductionPanel from './components/IntroductionPanel';
 import CharacterIntro from './components/CharacterIntro';
@@ -9,11 +8,10 @@ import Conversation from './components/Conversation';
 import GameModeSelection from './components/gameModeSelection';
 
 function App() {
-  const [isGameVisible, setGameVisible] = useState(false);
   const [showConversation, setShowConversation] = useState(false);
-  // New state to ensure the conversation only triggers once
   const [hasConversationTriggered, setHasConversationTriggered] = useState(false);
   const [walletAddress, setWalletAddress] = useState(null);
+  const [selectedChain, setSelectedChain] = useState('0G');
   const videoRef = useRef(null);
 
   const dialogues = [
@@ -30,68 +28,48 @@ function App() {
       alert("MetaMask not found. Please install the browser extension.");
       return;
     }
-
     try {
-      // Using ethers.js is a robust way to connect.
-      // It handles many wallet-specific quirks automatically.
       const provider = new ethers.BrowserProvider(window.ethereum);
-      
-      // This single call will prompt the user to connect if they aren't already
       const signer = await provider.getSigner();
-      
       const address = await signer.getAddress();
-      
       setWalletAddress(address);
-      console.log("Connected wallet:", address);
-
     } catch (error) {
       console.error("Wallet connection failed:", error);
-      // Ethers.js wraps user rejection in an ACTION_REJECTED error.
-      if (error.code === 'ACTION_REJECTED') {
-        alert("You rejected the connection request.");
-      } else {
-        alert("Could not connect to the wallet. Please ensure it's unlocked and try again.");
-      }
+      alert("Could not connect to the wallet.");
     }
   };
 
   const handlePlaySingle = () => {
-    setGameVisible(true);
+    const chain = selectedChain.toLowerCase();
+    const targetUrl = {
+      'flow': 'http://localhost:5175',
+      '0g': 'http://localhost:5176',
+      'world': 'http://localhost:5177'
+    }[chain];
+
+    if (targetUrl) {
+      // In production, you might use relative paths like `/${chain}/`
+      window.location.href = targetUrl;
+    } else {
+      alert(`Game for ${selectedChain} is not available yet.`);
+    }
   };
 
-  const handleCreateRoom = () => {
-    alert("Create Room feature coming soon!");
-  };
+  const handleCreateRoom = () => alert("Create Room feature coming soon!");
+  const handleJoinRoom = () => alert("Join Room feature coming soon!");
 
-  const handleJoinRoom = () => {
-    alert("Join Room feature coming soon!");
-  };
-
-  // This effect now triggers the conversation on user scroll, but only once.
   useEffect(() => {
     const handleScroll = () => {
-      // Check if user has scrolled, and if the conversation has NOT been triggered before.
       if (window.scrollY > 100 && !hasConversationTriggered) {
         setShowConversation(true);
-        // Set the triggered flag to true to prevent this from running again.
         setHasConversationTriggered(true);
       }
     };
-
-    // Add the scroll event listener only if the conversation hasn't been triggered yet.
     if (!hasConversationTriggered) {
       window.addEventListener('scroll', handleScroll);
     }
-
-    // Cleanup: remove the event listener when the component unmounts
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [hasConversationTriggered]); // Dependency array now correctly tracks the trigger state.
-
-  if (isGameVisible) {
-    return <PhaserGame />;
-  }
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [hasConversationTriggered]);
 
   return (
     <div className="bg-gray-900">
@@ -107,11 +85,14 @@ function App() {
         <source src="/assets/cut-scene/landing_bg_video.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
-
       <div style={{ position: 'relative', zIndex: 10, backgroundColor: 'rgba(0,0,0,0.45)' }}>
         <main>
           {!walletAddress ? (
-            <Hero onConnectClick={handleConnectWallet} />
+            <Hero
+              onConnectClick={handleConnectWallet}
+              selectedChain={selectedChain}
+              onChainSelect={setSelectedChain}
+            />
           ) : (
             <GameModeSelection
               onPlaySingle={handlePlaySingle}
@@ -119,18 +100,15 @@ function App() {
               onJoinRoom={handleJoinRoom}
             />
           )}
-            {showConversation && (
-              <Conversation
-                dialogues={dialogues}
-                onComplete={() => {
-                  // This will now correctly hide the conversation without it re-triggering.
-                  setShowConversation(false);
-                }}
-              />
-            )}
+          {showConversation && (
+            <Conversation
+              dialogues={dialogues}
+              onComplete={() => setShowConversation(false)}
+            />
+          )}
           <IntroductionPanel />
           <CharacterIntro />
-          <GameplayMechanics onPlayClick={() => setGameVisible(true)} />
+          <GameplayMechanics onPlayClick={handlePlaySingle} />
         </main>
       </div>
     </div>

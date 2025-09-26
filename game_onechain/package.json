@@ -13,12 +13,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@mysten/sui": "^1.37.2",
     "@tailwindcss/vite": "^4.1.13",
     "ethers": "^6.15.0",
-    "phaser": "^3.90.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.2",
     "react-transition-group": "^4.4.5",
     "tailwindcss": "^4.1.13",
     "vite": "^7.1.2"
