@@ -47,7 +47,6 @@ export class HomeScene extends Phaser.Scene {
 
   async create() {
     this.startTime = this.time.now;
-    // Create loading UI matching LoadingScene style
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
@@ -270,34 +269,6 @@ export class HomeScene extends Phaser.Scene {
         await this.updateInventory();
     }
 
-    const framePadding = 25;
-    const extraBottomSpace = 110;
-    const frameWidth = this.cameras.main.width - framePadding * 2;
-    const frameHeight =
-      this.cameras.main.height - framePadding * 2 - extraBottomSpace;
-    const cornerRadius = 30;
-
-    const maskShape = this.make.graphics();
-    maskShape.fillStyle(0xffff00);
-    maskShape.fillRoundedRect(
-      framePadding,
-      framePadding,
-      frameWidth,
-      frameHeight,
-      cornerRadius
-    );
-    this.cameras.main.setMask(maskShape.createGeometryMask());
-
-    const frame = this.add.graphics();
-    frame.lineStyle(10, 0xd4af37, 1);
-    frame.strokeRoundedRect(
-      framePadding,
-      framePadding,
-      frameWidth,
-      frameHeight,
-      cornerRadius
-    );
-    frame.setDepth(100);
     if (
       !this.sound.get("background_music") ||
       !this.sound.get("background_music").isPlaying
@@ -312,6 +283,7 @@ export class HomeScene extends Phaser.Scene {
             inaccessibleLocations: this.gameData.inaccessible_locations,
             difficulty: this.difficulty 
         });
+        this.scene.bringToTop('UIScene');
     }
 
     this.lights.enable();
@@ -585,6 +557,21 @@ export class HomeScene extends Phaser.Scene {
 
     this.createPlayer(1, 4.5);
 
+    this.cameras.main.startFollow(this.player);
+    this.cameras.main.setLerp(0.1, 0.1);
+    this.cameras.main.setZoom(1);
+    this.tweens.add({
+      targets : this.cameras.main,
+      zoom : 1.7,
+      duration : 4000,
+      ease : 'Sine.easeInOut',
+      delay : 100
+    });
+
+    const worldWidth = Math.ceil(this.cameras.main.width / this.tileSize) * this.tileSize;
+    const worldHeight = Math.floor(this.cameras.main.height / this.tileSize) * this.tileSize;
+    this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasd = this.input.keyboard.addKeys("W,S,A,D");
 
@@ -748,15 +735,15 @@ export class HomeScene extends Phaser.Scene {
       .sprite(pixelX, pixelY, "player")
       .setOrigin(0.5)
       .setDisplaySize(this.tileSize, this.tileSize)
-      .setScale(0.12)
+      .setScale(0.10)
       .setPipeline("Light2D");
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(10);
 
     this.playerLight = this.lights
-      .addLight(pixelX, pixelY, 250)
+      .addLight(pixelX, pixelY, 100)
       .setColor(0xaaccff)
-      .setIntensity(2.0);
+      .setIntensity(1.0);
   }
 
   setupResetPlayer() {
