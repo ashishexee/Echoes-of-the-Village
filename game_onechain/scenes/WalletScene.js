@@ -304,9 +304,9 @@ export class WalletScene extends Phaser.Scene {
 
   async registerUserInContract(walletProvider) {
     try {
-      const PACKAGE_ID = "0xf7fd6f8b100f786fcda885db47807a53af18562abc37485da97eab52ee85c6a9";
-      const MODULE_NAME = "contract_one";
-      const SCORES_OBJECT_ID = "0x8ecdcbfb483d5aae0a22ad90d2412c15fe102b62e1cb0cc3e9e6df05e23839b6";
+      const PACKAGE_ID = "0x7102f4157cdeef27cb198db30366ecd10dc7374d5a936dba2a40004371787b9d";
+      const MODULE_NAME = "contracts_one";
+      const SCORES_OBJECT_ID = "0xfc2f040b88dd5dfbbbd28b74bb363537c634c78c55ca6d455ae547221838845f";
 
       const isRegistered = await this.checkIfUserRegistered();
       
@@ -353,9 +353,9 @@ export class WalletScene extends Phaser.Scene {
 
   async checkIfUserRegistered() {
     try {
-      const PACKAGE_ID = "0xf7fd6f8b100f786fcda885db47807a53af18562abc37485da97eab52ee85c6a9";
-      const MODULE_NAME = "contract_one";
-      const SCORES_OBJECT_ID = "0x8ecdcbfb483d5aae0a22ad90d2412c15fe102b62e1cb0cc3e9e6df05e23839b6";
+      const PACKAGE_ID = "0x7102f4157cdeef27cb198db30366ecd10dc7374d5a936dba2a40004371787b9d";
+      const MODULE_NAME = "contracts_one";
+      const SCORES_OBJECT_ID = "0xfc2f040b88dd5dfbbbd28b74bb363537c634c78c55ca6d455ae547221838845f";
 
       const tx = new Transaction();
       tx.moveCall({
@@ -401,7 +401,7 @@ export class WalletScene extends Phaser.Scene {
   }
 
   proceedToGame() {
-    this.scene.start('MenuScene', { 
+    this.scene.start('AvatarScene', { 
       account: this.userAddress,
       suiClient: this.suiClient 
     });

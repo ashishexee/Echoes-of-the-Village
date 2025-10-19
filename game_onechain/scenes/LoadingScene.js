@@ -81,7 +81,7 @@ export class LoadingScene extends Phaser.Scene {
     this.load.image("crop01" , "assets/images/world/crop01.png");
     this.load.image("forest01", "assets/images/world/forest03.png");
     this.load.image("forest02", "assets/images/world/forest02.png");
-    this.load.image("player", "assets/images/characters/mc.png");
+    this.load.image("player", "assets/images/characters/mc_1.png");
     this.load.image("crop02" , "assets/images/world/crop02.png");
     this.load.image("crop03" , "assets/images/world/crop03.png");
     this.load.image("tree05","assets/images/world/tree05.png");
@@ -96,6 +96,10 @@ export class LoadingScene extends Phaser.Scene {
     this.load.audio("background_music", "assets/music/background_audio.mp3");
     this.load.audio("villager_accept", "assets/music/villager_accept.ogg");
     this.load.audio("thunder", "assets/music/thunder.mp3");
+    
+    for (let i = 1; i <= 10; i++) {
+    this.load.image(`avatar_${i}`, `/assets/images/characters/mc_${i}.png`);
+  }
 
 
 

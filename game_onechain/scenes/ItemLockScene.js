@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { Transaction } from '@mysten/sui/transactions';
 
-const PACKAGE_ID = "0xf7fd6f8b100f786fcda885db47807a53af18562abc37485da97eab52ee85c6a9";
+const PACKAGE_ID = "0x7102f4157cdeef27cb198db30366ecd10dc7374d5a936dba2a40004371787b9d"; // Fixed package ID
 
 export class ItemLockScene extends Phaser.Scene {
     constructor() {
@@ -11,6 +11,7 @@ export class ItemLockScene extends Phaser.Scene {
         this.account = null;
         this.gameData = null;
         this.statusText = null;
+        this.playerInventory = null; // Add this property
     }
 
     init(data) {
@@ -18,6 +19,7 @@ export class ItemLockScene extends Phaser.Scene {
         this.suiClient = data.suiClient;
         this.account = data.account;
         this.gameData = data.gameData;
+        this.playerInventory = data.playerInventory; // Get inventory from HomeScene
     }
 
     create() {
@@ -44,13 +46,22 @@ export class ItemLockScene extends Phaser.Scene {
             fontFamily: 'Arial', fontSize: '20px', color: '#dddddd', align: 'center', wordWrap: { width: panelWidth - 80 }
         }).setOrigin(0.5);
 
-        // Status text for feedback
-        this.statusText = this.add.text(panelX, panelY + 50, '', {
-            fontFamily: 'Arial', fontSize: '22px', color: '#d4af37', align: 'center'
-        }).setOrigin(0.5);
+        // Check if player has the item and show appropriate status
+        const hasItem = this.playerInventory && this.playerInventory.has(this.villager.requiredItem);
+        
+        this.statusText = this.add.text(panelX, panelY + 50, 
+            hasItem ? `You have the ${requiredItemName}!` : `You need to find a ${requiredItemName} first.`, 
+            {
+                fontFamily: 'Arial', fontSize: '22px', 
+                color: hasItem ? '#4CAF50' : '#ff6b6b', 
+                align: 'center'
+            }
+        ).setOrigin(0.5);
 
         // Buttons
-        this.createButton(panelX, panelY + panelHeight / 2 - 120, 'Trade Off (Check Wallet)', () => this.tradeAndBurnItem());
+        if (hasItem) {
+            this.createButton(panelX, panelY + panelHeight / 2 - 120, 'Trade Item', () => this.tradeAndBurnItem());
+        }
         this.createButton(panelX, panelY + panelHeight / 2 - 60, 'Close', () => this.closeScene());
     }
 
@@ -63,7 +74,7 @@ export class ItemLockScene extends Phaser.Scene {
         this.statusText.setText("Checking your wallet for the item...");
 
         try {
-            const itemNftType = `${PACKAGE_ID}::contract_one::ItemNFT`;
+            const itemNftType = `${PACKAGE_ID}::contracts_one::ItemNFT`;
             const objects = await this.suiClient.getOwnedObjects({
                 owner: this.account,
                 filter: { StructType: itemNftType },
@@ -90,7 +101,7 @@ export class ItemLockScene extends Phaser.Scene {
 
             const tx = new Transaction();
             tx.moveCall({
-                target: `${PACKAGE_ID}::contract_one::burn_item`,
+                target: `${PACKAGE_ID}::contracts_one::burn_item`,
                 arguments: [tx.object(itemToBurn.objectId)],
             });
 

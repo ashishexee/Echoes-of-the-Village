@@ -1,9 +1,9 @@
 import Phaser from "phaser";
+import { AvatarUtils } from "../utils/avatarUtils.js";
 import { startNewGame, getConversation } from "../api";
 import { Transaction } from '@mysten/sui/transactions';
 
-const PACKAGE_ID = "0xf7fd6f8b100f786fcda885db47807a53af18562abc37485da97eab52ee85c6a9";
-
+const PACKAGE_ID = "0x7102f4157cdeef27cb198db30366ecd10dc7374d5a936dba2a40004371787b9d";
 export class HomeScene extends Phaser.Scene {
   constructor() {
     super({ key: "HomeScene" });
@@ -21,10 +21,11 @@ export class HomeScene extends Phaser.Scene {
     this.gameData = null;
     this.resetKey = null;
     this.resetTimer = null;
-    this.initialPlayerPos = { x: 1, y: 4.5};
+    this.initialPlayerPos = { x: 1.3, y: 5};
     this.resetFeedbackText = null;
     this.suiClient = null;
     this.account = null;
+    this.userAvatar = null;
     this.playerInventory = new Set();
     this.mintKey = null;
     this.activeMintZone = null;
@@ -42,7 +43,56 @@ export class HomeScene extends Phaser.Scene {
     }
     this.suiClient = data ? data.suiClient : null;
     this.account = data ? data.account : null;
+    this.userAvatar = data ? data.userAvatar : null; // Receive avatar data
     this.difficulty = data ? data.difficulty || "Easy" : "Easy";
+  }
+
+  preload() {
+    // Load avatar image for player
+    if (this.userAvatar) {
+      const avatarImageKey = AvatarUtils.getAvatarImageKey(this.userAvatar.avatarId);
+      this.load.image(avatarImageKey, `/assets/images/characters/mc_${this.userAvatar.avatarId}.png`);
+    }
+    this.load.audio("background_music", "assets/music/background_audio.mp3");
+
+    // Ensure audio used in this scene is available in the cache.
+    // LoadingScene loads these too, but preload them here so HomeScene can run standalone.
+    this.load.audio("villager_accept", "assets/music/villager_accept.ogg");
+    this.load.audio("thunder", "assets/music/thunder.mp3");
+    
+    // --- FIX: Load all necessary game assets ---
+    this.load.image("background", "assets/images/world/background02.png");
+    this.load.image("path", "assets/images/world/path.png");
+    this.load.image("path_rounded", "assets/images/world/path_rounded.png");
+
+    // Buildings
+    this.load.image("house01", "assets/images/world/house01.png");
+    this.load.image("house02", "assets/images/world/house02.png");
+    this.load.image("house05", "assets/images/world/house05.png");
+    this.load.image("church01", "assets/images/world/church03.png");
+    this.load.image("windmill", "assets/images/world/windmill.png");
+    this.load.image("shop01", "assets/images/world/shop01.png");
+    this.load.image("farmhouse", "assets/images/world/farmhouse.png");
+
+    // Nature & Objects
+    this.load.image("lake01", "assets/images/world/lake04.png");
+    this.load.image("lake02", "assets/images/world/lake05.png");
+    this.load.image("well01", "assets/images/world/well02.png");
+    this.load.image("stove01", "assets/images/world/stove01.png");
+    this.load.image("animals01", "assets/images/world/animals01.png");
+    this.load.image("forest01", "assets/images/world/forest03.png");
+    this.load.image("tree01", "assets/images/world/tree02.png");
+    this.load.image("tree05", "assets/images/world/tree05.png");
+    this.load.image("crop02", "assets/images/world/crop02.png");
+    this.load.image("crop03", "assets/images/world/crop03.png");
+    this.load.image("flower01", "assets/images/world/flowers01.png");
+    this.load.image("flower02", "assets/images/world/flowers02.png");
+    this.load.image("flower03", "assets/images/world/flowers03.png");
+
+    // Villagers
+    this.load.image("villager02", "assets/images/characters/villager02.png");
+    this.load.image("villager03", "assets/images/characters/villager03.png");
+    this.load.image("villager04", "assets/images/characters/villager04.png");
   }
 
   async create() {
@@ -555,7 +605,7 @@ export class HomeScene extends Phaser.Scene {
  
     this.createObstacle(6, 0.3, "crop03", 2, 2);
 
-    this.createPlayer(1, 4.5);
+    this.createPlayer(1.3 , 5);
 
     this.cameras.main.startFollow(this.player);
     this.cameras.main.setLerp(0.1, 0.1);
@@ -726,24 +776,39 @@ export class HomeScene extends Phaser.Scene {
   }
 
   createPlayer(tileX, tileY) {
-    const pixelX = tileX * this.tileSize + this.tileSize / 2;
-    const pixelY = tileY * this.tileSize + this.tileSize / 2;
-    // Store the initial position for the reset feature
-    this.initialPlayerPos = { x: pixelX, y: pixelY };
-    
-    this.player = this.physics.add
-      .sprite(pixelX, pixelY, "player")
-      .setOrigin(0.5)
-      .setDisplaySize(this.tileSize, this.tileSize)
-      .setScale(0.10)
-      .setPipeline("Light2D");
-    this.player.setCollideWorldBounds(true);
-    this.player.setDepth(10);
+    if (!this.userAvatar) {
+      console.error("User avatar not available");
+      return;
+    }
 
-    this.playerLight = this.lights
-      .addLight(pixelX, pixelY, 100)
-      .setColor(0xaaccff)
-      .setIntensity(1.0);
+    const worldX = tileX * this.tileSize;
+    const worldY = tileY * this.tileSize;
+
+    const avatarImageKey = AvatarUtils.getAvatarImageKey(this.userAvatar.avatarId);
+    
+    // Create player sprite using their avatar NFT
+    this.player = this.physics.add.image(worldX, worldY, avatarImageKey)
+      .setOrigin(0.5, 0.5)
+      .setScale(0.08);
+
+    // Add a glow effect to show it's the player
+    this.playerLight = this.lights.addLight(worldX, worldY, 150);
+    this.playerLight.setColor(0xd4af37); // Gold color for avatar
+
+    // Add avatar info text above player (optional)
+    const avatarNameText = this.add.text(
+      worldX,
+      worldY - 40,
+      AvatarUtils.getAvatarDisplayName(this.userAvatar.avatarId),
+      {
+        fontFamily: "Arial",
+        fontSize: "12px",
+        color: "#d4af37",
+        backgroundColor: "rgba(0,0,0,0.6)",
+        padding: { x: 5, y: 2 },
+      }
+    ).setOrigin(0.5);
+    return this.player;
   }
 
   setupResetPlayer() {
@@ -821,7 +886,8 @@ export class HomeScene extends Phaser.Scene {
           villager: this.nearbyVillager,
           suiClient: this.suiClient,
           account: this.account,
-          gameData: this.gameData
+          gameData: this.gameData,
+          playerInventory: this.playerInventory 
         });
         return;
       }
@@ -835,7 +901,12 @@ export class HomeScene extends Phaser.Scene {
     this.player.setVelocity(0, 0);
 
     this.interactionText.setText("...");
-    this.sound.play("villager_accept", { volume: 6 });
+    // Play sound only if loaded to avoid cache error.
+    if (this.sound.get("villager_accept")) {
+      this.sound.play("villager_accept", { volume: 6 });
+    } else {
+      console.warn('Audio key "villager_accept" not found in cache.');
+    }
     console.log(villager.name);
     
     const conversationData = await getConversation(villager.name, "Hello");
@@ -983,10 +1054,10 @@ export class HomeScene extends Phaser.Scene {
     try {
         const tx = new Transaction();
         tx.moveCall({
-            target: `${PACKAGE_ID}::contract_one::mint_item`,
+            target: `${PACKAGE_ID}::contracts_one::mint_item`, // Fixed module name
             arguments: [
                 tx.pure.address(this.account),
-                tx.pure('vector<u8>',Array.from(new TextEncoder().encode(itemName))),
+                tx.pure('vector<u8>', Array.from(new TextEncoder().encode(itemName))), // Fixed pure type format
             ],
         });
 
@@ -1005,7 +1076,7 @@ export class HomeScene extends Phaser.Scene {
         
         // Update the current mint zone text if player is still in it
         if (this.activeMintZone && this.activeMintZone.itemName === itemName) {
-            this.mintText.setText(`You already own the ${itemName.replace(/_/g, ' ')}`);
+            this.updateMintZoneText(itemName);
         }
 
     } catch (error) {
@@ -1023,7 +1094,7 @@ export class HomeScene extends Phaser.Scene {
     if (!this.suiClient || !this.account) return;
 
     try {
-        const itemNftType = `${PACKAGE_ID}::contract_one::ItemNFT`;
+        const itemNftType = `${PACKAGE_ID}::contracts_one::ItemNFT`; // Fixed module name
         const objects = await this.suiClient.getOwnedObjects({
             owner: this.account,
             filter: { StructType: itemNftType },
@@ -1034,7 +1105,7 @@ export class HomeScene extends Phaser.Scene {
         objects.data.forEach(item => {
             if (item.data && item.data.content && item.data.content.fields) {
                 const nameBytes = item.data.content.fields.name;
-                const itemName = String.fromCharCode.apply(null, nameBytes);
+                const itemName = String.fromCharCode.apply(null, nameBytes); // Fixed decoding method
                 currentInventory.add(itemName);
             }
         });

@@ -11,6 +11,7 @@ import { UIScene } from "../scenes/UIScene.js";
 import { ItemLockScene } from "../scenes/ItemLockScene.js";
 import { InventoryScene } from "../scenes/InventoryScene.js";
 import { EndScene } from "../scenes/EndScene.js";
+import { AvatarScene } from '../scenes/AvatarScene.js';
 
 const PhaserGame = () => {
     const gameRef = useRef(null);
@@ -36,7 +37,7 @@ const PhaserGame = () => {
                 scene: [
                     WalletScene, MenuScene, LoadingScene, VideoScene, HomeScene, 
                     UIScene, DialogueScene, InventoryScene, ItemLockScene, 
-                    LeaderboardScene, EndScene
+                    LeaderboardScene, EndScene , AvatarScene
                 ],
             };
 
