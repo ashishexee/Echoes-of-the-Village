@@ -1,53 +1,63 @@
 import Phaser from "phaser";
-import { Transaction } from '@mysten/sui/transactions';
-
-const PACKAGE_ID = "0xf7fd6f8b100f786fcda885db47807a53af18562abc37485da97eab52ee85c6a9";
-const MODULE_NAME = "contract_one";
-const SCORES_OBJECT_ID = "0x8ecdcbfb483d5aae0a22ad90d2412c15fe102b62e1cb0cc3e9e6df05e23839b6";
+import { AvatarUtils } from "../utils/avatarUtils.js";
 
 export class MenuScene extends Phaser.Scene {
-    constructor() {
-        super({ key: 'MenuScene' });
-        this.walletAddress = null;
-        this.playerGender = null;
-        this._genderOverlay = null;
-        this.enterButton = null;
-        this.leaderboardButton = null;
-        this.suiClient = null;
-        this.scoreText = null;
-        this.difficulties = ["Very Easy", "Easy", "Medium", "Hard"];
-        this.difficultyIndex = 1; // Default to "Easy"
-        this._difficultyOverlay = null;
-        this.difficultyText = null;
-        this.arrowKeys = null;
-    }
+  constructor() {
+    super({ key: "MenuScene" });
+    this.suiClient = null;
+    this.account = null;
+    this.userAvatar = null; // Store user's avatar data
+  }
 
-    init(data) {
-        if (data && data.account) {
-            this.walletAddress = data.account;
-        }
-        // Make sure we're properly capturing the suiClient from data
-        this.suiClient = data && data.suiClient ? data.suiClient : null;
-        
-        // Log the data for debugging
-        console.log("MenuScene initialized with:", {
-            walletAddress: this.walletAddress,
-            suiClient: this.suiClient ? "suiClient present" : "no suiClient"
+  init(data) {
+    this.suiClient = data?.suiClient;
+    this.account = data?.account;
+  }
+
+  preload() {
+    // Load all 10 avatar images (for preview/selection)
+    for (let i = 1; i <= 10; i++) {
+      this.load.image(`avatar_${i}`, `/assets/images/characters/mc_${i}.png`);
+    }
+    this.load.video('bg04_animated', '/assets/cut-scene/bg04_animated.mp4', 'loadeddata', false, true);
+  }
+
+  async create() {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+
+    // Fetch user's avatar
+    try {
+      this.userAvatar = await AvatarUtils.getUserAvatar(this.suiClient, this.account);
+      if (!this.userAvatar) {
+        console.error("User has no avatar");
+        this.scene.start("AvatarScene", {
+          suiClient: this.suiClient,
+          account: this.account,
         });
+        return;
+      }
+      console.log("User Avatar:", this.userAvatar);
+    } catch (error) {
+      console.error("Failed to fetch user avatar:", error);
+      // Optional: Show an error message on screen
     }
 
-    preload() {
-        this.load.video(
-            "bg_video",
-            "assets/cut-scene/bg04_animated.mp4",
-            "loadeddata",
-            false,
-            true
-        );
-    }
+    // --- NEW: Polished background and layout ---
+    const bgVideo = this.add.video(width / 2, height / 2, 'bg04_animated');
+    bgVideo.play(true);
+    const zoomOutFactor = 0.45;
+    
+    const scaleX = this.scale.width / (bgVideo.width || this.scale.width);
+    const scaleY = this.scale.height / (bgVideo.height || this.scale.height);
+    const scale = Math.min(scaleX, scaleY) * zoomOutFactor;
+    bgVideo.setScale(scale).setScrollFactor(0).setOrigin(0.5);
 
-    create() {
-          const framePadding = 20;
+    // Add a dark overlay to match other scenes
+    this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0);
+
+    // --- Keep the screen frame effect ---
+    const framePadding = 20;
     const frameWidth = this.cameras.main.width - framePadding * 2;
     const frameHeight = this.cameras.main.height - framePadding * 2;
     const cornerRadius = 30;
@@ -61,332 +71,173 @@ export class MenuScene extends Phaser.Scene {
     frame.lineStyle(10, 0xd4af37, 1);
     frame.strokeRoundedRect(framePadding, framePadding, frameWidth, frameHeight, cornerRadius);
     frame.setDepth(100);
-        const { width, height } = this.scale;
 
-        const bgVideo = this.add.video(width / 2, height / 2, "bg_video");
-        bgVideo.play(true);
-        const zoomOutFactor = 0.45;
+    // Main panel with a more refined look
+    const panelWidth = 900;
+    const panelHeight = 500;
+    const panelX = width / 2 - panelWidth / 2;
+    const panelY = height / 2 - panelHeight / 2;
 
-        const scaleX = width / (bgVideo.width || width);
-        const scaleY = height / (bgVideo.height || height);
-        const scale = Math.min(scaleX, scaleY) * zoomOutFactor;
-        bgVideo.setScale(scale).setScrollFactor(0).setOrigin(0.5);
-        bgVideo.setVolume(15);
-        bgVideo.setMute(false);
-        bgVideo.setActive(true);
+    const panel = this.add.graphics();
+    panel.fillStyle(0x1a1a1a, 0.85); // Darker, more solid background
+    panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 25);
+    panel.lineStyle(4, 0xd4af37, 1); // Golden border
+    panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 25);
 
-        this.input.once("pointerdown", () => {
-            bgVideo.setMute(false);
-        }, this);
+    // Game Title
+    this.add.text(width / 2, panelY + 60, "Echoes of the Village", {
+      fontFamily: "Georgia, serif",
+      fontSize: "48px",
+      color: "#ffffffff",
+      align: "center",
+      stroke: '#000000',
+      strokeThickness: 6
+    }).setOrigin(0.5);
 
-        this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0);
+    // Decorative separator line
+    const separator = this.add.graphics();
+    separator.lineStyle(2, 0xd4af37, 0.5);
+    separator.moveTo(width / 2, panelY + 120);
+    separator.lineTo(width / 2, panelY + panelHeight - 50);
+    separator.strokePath();
 
-        const panelWidth = 600;
-        const panelHeight = 500;
-        this.add.graphics()
-            .fillStyle(0x1a1a1a, 0.9)
-            .fillRoundedRect(width / 2 - panelWidth / 2, height / 2 - panelHeight / 2, panelWidth, panelHeight, 20)
-            .lineStyle(2, 0xd4af37, 1)
-            .strokeRoundedRect(width / 2 - panelWidth / 2, height / 2 - panelHeight / 2, panelWidth, panelHeight, 20);
+    // Define layout columns
+    const leftColumnX = width / 2 - panelWidth / 4;
+    const rightColumnX = width / 2 + panelWidth / 4;
+    const contentCenterY = height / 2 + 40;
 
-        this.add.text(width / 2, height / 2 - 160, 'Echoes of the Village', {
-            fontFamily: 'Georgia, serif',
-            fontSize: '56px',
-            color: '#ffffff',
-            align: 'center',
-            shadow: {
-                offsetX: 2,
-                offsetY: 2,
-                color: '#000',
-                blur: 5,
-                stroke: true,
-                fill: true
-            }
-        }).setOrigin(0.5);
+    // Display user's avatar info in the left column
+    this.displayAvatarInfo(leftColumnX, contentCenterY);
 
-        this.scoreText = this.add.text(width / 2, height / 2 - 80, 'Score: Loading...', {
-            fontFamily: 'Georgia, serif',
-            fontSize: '32px',
-            color: '#ffffff',
-            align: 'center',
-            shadow: { offsetX: 1, offsetY: 1, color: '#000', blur: 2 }
-        }).setOrigin(0.5);
+    // Display menu options in the right column
+    this.createMenuButtons(rightColumnX, contentCenterY);
+  }
 
-        this.fetchAndDisplayScore();
+  displayAvatarInfo(x, y) {
+    // Avatar image with a border and circular mask
+    const avatarX = x;
+    const avatarY = y - 100;
+    const avatarSize = 150;
 
-        this.enterButton = this.createButton(width / 2, height / 2, 'Enter Game', () => {
-            this.showGenderSelection();
-        });
+    this.add.graphics()
+      .lineStyle(3, 0xd4af37, 1)
+      .strokeCircle(avatarX, avatarY, avatarSize / 2 + 4);
 
-        this.leaderboardButton = this.createButton(width / 2, height / 2 + 90, 'Leaderboard', () => {
-            this.scene.start('LeaderboardScene', { suiClient: this.suiClient, account: this.walletAddress });
-        });
+    const avatarImageKey = AvatarUtils.getAvatarImageKey(this.userAvatar.avatarId);
+    const avatarImage = this.add.image(avatarX, avatarY, avatarImageKey)
+      .setOrigin(0.5)
+      .setDisplaySize(avatarSize, avatarSize);
+    
+    const shape = this.make.graphics().fillCircle(avatarX, avatarY, avatarSize / 2);
+    avatarImage.setMask(shape.createGeometryMask());
 
-        let footerText = 'Not Connected';
-        if (this.walletAddress) {
-            const formattedAddress = `${this.walletAddress.substring(0, 6)}...${this.walletAddress.substring(this.walletAddress.length - 4)}`;
-            footerText = `Connected: ${formattedAddress}`;
-        }
-        this.add.text(width / 2, height / 2 + 210, footerText, {
-            fontFamily: 'Arial',
-            fontSize: '14px',
-            color: '#aaaaaa'
-        }).setOrigin(0.5);
-    }
+    // Avatar name
+    this.add.text(x, y, AvatarUtils.getAvatarDisplayName(this.userAvatar.avatarId), {
+      fontFamily: "Georgia, serif",
+      fontSize: "28px",
+      color: "#ffffffff",
+      align: "center",
+    }).setOrigin(0.5);
 
-    async fetchAndDisplayScore() {
-        if (!this.suiClient || !this.walletAddress) {
-            this.scoreText.setText('Score: N/A');
-            return;
-        }
+    // Player address (truncated)
+    const addressDisplay = this.account.substring(0, 6) + "..." + this.account.substring(this.account.length - 4);
+    this.add.text(x, y + 40, `Address: ${addressDisplay}`, {
+      fontFamily: "Arial",
+      fontSize: "14px",
+      color: "#cccccc",
+      align: "center",
+    }).setOrigin(0.5);
 
-        try {
-            const tx = new Transaction();
-            tx.moveCall({
-                target: `${PACKAGE_ID}::${MODULE_NAME}::get_score`,
-                arguments: [
-                    tx.object(SCORES_OBJECT_ID),
-                    tx.pure.address(this.walletAddress)
-                ],
-            });
+    // Avatar ID info
+    this.add.text(x, y + 70, `NFT ID: ${this.userAvatar.objectId.substring(0, 10)}...`, {
+      fontFamily: "Arial",
+      fontSize: "12px",
+      color: "#999999",
+      align: "center",
+    }).setOrigin(0.5);
 
-            const result = await this.suiClient.devInspectTransactionBlock({
-                sender: this.walletAddress,
-                transactionBlock: tx,
-            });
+    // "Playing as" label
+    this.add.text(x, y + 110, "✔ Playing as this avatar", {
+      fontFamily: "Arial",
+      fontSize: "16px",
+      color: "#4CAF50",
+      align: "center",
+      fontStyle: "italic",
+    }).setOrigin(0.5);
+  }
 
-            if (result.effects.status.status === 'success' && result.results && result.results[0].returnValues) {
-                const [bytes, type] = result.results[0].returnValues[0];
-                if (type === 'u64') {
-                    const dataView = new DataView(new Uint8Array(bytes).buffer);
-                    const score = dataView.getBigUint64(0, true); 
-                    this.scoreText.setText(`Score: ${score.toString()}`);
-                } else {
-                    throw new Error("Unexpected return type from get_score");
-                }
-            } else {
-                this.scoreText.setText('Score: error');
-            }
-        } catch (error) {
-            console.error("Failed to fetch score:", error);
-            this.scoreText.setText('Score: Error');
-        }
-    }
+  createMenuButtons(x, y) {
+    const buttonSpacing = 90;
 
-    showGenderSelection() {
-        if (this._genderOverlay) return;
-        const { width, height } = this.scale;
+    // Start Game button
+    this.createStyledButton(
+      x,
+      y - buttonSpacing,
+      "Start New Game",
+      () => this.startGame()
+    );
+    // Leaderboard button
+    this.createStyledButton(
+      x,
+      y + buttonSpacing,
+      "Leaderboard",
+      () => this.viewLeaderboard()
+    );
+  }
 
-        const blocker = this.add.rectangle(0, 0, width, height, 0x000000, 0.6).setOrigin(0).setInteractive();
+  createStyledButton(x, y, text, callback) {
+    const buttonWidth = 320;
+    const buttonHeight = 70;
 
-        const panelW = 480;
-        const panelH = 220;
-        const panelX = width / 2 - panelW / 2;
-        const panelY = height / 2 - panelH / 2;
+    const button = this.add.container(x, y);
 
-        const panel = this.add.graphics();
-        panel.fillStyle(0x1a1a1a, 0.98);
-        panel.fillRoundedRect(panelX, panelY, panelW, panelH, 14);
-        panel.lineStyle(2, 0xd4af37, 1);
-        panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 14);
+    const background = this.add.graphics()
+        .fillStyle(0x1a1a1a, 1)
+        .fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 18);
 
-        const title = this.add.text(width / 2, height / 2 - 50, 'Select Gender', {
-            fontFamily: 'Georgia, serif',
-            fontSize: '32px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
+    const border = this.add.graphics()
+        .lineStyle(3, 0xd4af37, 1)
+        .strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 18);
 
-        const maleBtn = this.createButton(width / 2 - 110, height / 2 + 30, 'Male', () => {
-            this.playerGender = 'Male';
-            this.closeGenderSelectionAndShowDifficulty();
-        });
+    const buttonText = this.add.text(0, 0, text, {
+        fontFamily: "Georgia, serif",
+        fontSize: "28px",
+        color: "#ffffffff",
+    }).setOrigin(0.5);
 
-        const femaleBtn = this.createButton(width / 2 + 110, height / 2 + 30, 'Female', () => {
-            this.playerGender = 'Female';
-            this.closeGenderSelectionAndShowDifficulty();
-        });
+    button.add([background, border, buttonText]);
+    button.setSize(buttonWidth, buttonHeight);
+    button.setInteractive({ useHandCursor: true });
 
-        this._genderOverlay = this.add.container(0, 0, [blocker, panel, title, maleBtn, femaleBtn]);
-        this._genderOverlay.setDepth(1000);
+    button.on('pointerover', () => {
+        buttonText.setColor('#ffffff');
+        border.clear().lineStyle(3, 0xffffff, 1).strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 18);
+        this.tweens.add({ targets: button, scale: 1.05, duration: 200, ease: 'Sine.easeOut' });
+    });
 
-        if (this.enterButton) this.enterButton.alpha = 0.5;
-        if (this.leaderboardButton) this.leaderboardButton.alpha = 0.5;
-    }
+    button.on('pointerout', () => {
+        buttonText.setColor('#d4af37');
+        border.clear().lineStyle(3, 0xd4af37, 1).strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 18);
+        this.tweens.add({ targets: button, scale: 1, duration: 200, ease: 'Sine.easeIn' });
+    });
 
-    closeGenderSelectionAndShowDifficulty() {
-        if (this._genderOverlay) {
-            this._genderOverlay.destroy();
-            this._genderOverlay = null;
-        }
-        this.showDifficultySelection();
-    }
-    showDifficultySelection() {
-        if (this._difficultyOverlay) return;
-        const { width, height } = this.scale;
+    button.on('pointerdown', callback);
 
-        const blocker = this.add.rectangle(0, 0, width, height, 0x000000, 0.6).setOrigin(0).setInteractive();
+    return button;
+  }
 
-        const panelW = 550;
-        const panelH = 250;
-        const panelX = width / 2 - panelW / 2;
-        const panelY = height / 2 - panelH / 2;
+  startGame() {
+    this.scene.start("HomeScene", {
+      suiClient: this.suiClient,
+      account: this.account,
+      userAvatar: this.userAvatar, // Pass avatar data to gameplay
+    });
+  }
 
-        const panel = this.add.graphics().fillStyle(0x1a1a1a, 0.98).fillRoundedRect(panelX, panelY, panelW, panelH, 14);
-        panel.lineStyle(2, 0xd4af37, 1).strokeRoundedRect(panelX, panelY, panelW, panelH, 14);
-        const title = this.add.text(width / 2, height / 2 - 70, 'Select Difficulty', {
-            fontFamily: 'Georgia, serif',
-            fontSize: '32px',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-
-        // Difficulty Text Display
-        this.difficultyText = this.add.text(width / 2, height / 2, this.difficulties[this.difficultyIndex], {
-            fontFamily: 'Arial',
-            fontSize: '36px',
-            color: '#ffffff',
-            align: 'center'
-        }).setOrigin(0.5);
-        // Arrow Buttons
-        const leftArrow = this.createArrowButton(width / 2 - 150, height / 2, 'left', () => this.changeDifficulty(-1));
-        const rightArrow = this.createArrowButton(width / 2 + 150, height / 2, 'right', () => this.changeDifficulty(1));
-
-        // Start Game Button
-        const startBtn = this.createButton(width / 2, height / 2 + 80, 'Start Game', () => {
-            this.closeDifficultyAndStart();
-        });
-
-        this._difficultyOverlay = this.add.container(0, 0, [blocker, panel, title, this.difficultyText, leftArrow, rightArrow, startBtn]);
-        this._difficultyOverlay.setDepth(1000);
-
-        // Keyboard input for arrows
-        this.arrowKeys = this.input.keyboard.createCursorKeys();
-        this.input.keyboard.on('keydown-LEFT', () => this.changeDifficulty(-1));
-        this.input.keyboard.on('keydown-RIGHT', () => this.changeDifficulty(1));
-    }
-        changeDifficulty(direction) {
-        const oldText = this.difficultyText;
-        const { width } = this.scale;
-
-        // Animate old text out
-        this.tweens.add({
-            targets: oldText,
-            x: oldText.x - 100 * direction,
-            alpha: 0,
-            duration: 200,
-            ease: 'Sine.easeIn',
-            onComplete: () => {
-                oldText.destroy();
-            }
-        });
-         this.difficultyIndex += direction;
-        if (this.difficultyIndex < 0) this.difficultyIndex = this.difficulties.length - 1;
-        if (this.difficultyIndex >= this.difficulties.length) this.difficultyIndex = 0;
-
-        // Create and animate new text in
-        this.difficultyText = this.add.text(width / 2 + 100 * direction, this.difficultyText.y, this.difficulties[this.difficultyIndex], oldText.style).setOrigin(0.5).setAlpha(0);
-        this._difficultyOverlay.add(this.difficultyText);
-
-        this.tweens.add({
-            targets: this.difficultyText,
-            x: width / 2,
-            alpha: 1,
-            duration: 200,
-            ease: 'Sine.easeOut'
-        });
-            }
-
-    createArrowButton(x, y, direction, callback) {
-        const arrow = this.add.text(x, y, direction === 'left' ? '◀' : '▶', { fontSize: '48px', color: '#d4af37' }).setOrigin(0.5);
-        arrow.setInteractive({ useHandCursor: true });
-        arrow.on('pointerdown', callback);
-        arrow.on('pointerover', () => arrow.setColor('#fffa8e'));
-        arrow.on('pointerout', () => arrow.setColor('#d4af37'));
-        return arrow;
-    }
-closeDifficultyAndStart() {
-        if (this._difficultyOverlay) {
-            this._difficultyOverlay.destroy();
-            this._difficultyOverlay = null;
-        }
-        // Cleanup keyboard listeners
-        this.input.keyboard.off('keydown-LEFT');
-        this.input.keyboard.off('keydown-RIGHT');
-        this.arrowKeys = null;
-
-        if (this.enterButton) this.enterButton.alpha = 1;
-        if (this.leaderboardButton) this.leaderboardButton.alpha = 1;
-        this.scene.start('LoadingScene', {
-            playerGender: this.playerGender,
-            difficulty: this.difficulties[this.difficultyIndex], // Pass the selected difficulty
-            nextScene: 'VideoScene',
-            account: this.walletAddress,
-            suiClient: this.suiClient
-        });
-    }
-
-    createButton(x, y, text, callback) {
-        const buttonWidth = 280;
-        const buttonHeight = 60;
-
-        const button = this.add.container(x, y);
-
-        const background = this.add
-            .graphics()
-            .fillStyle(0x333333, 1)
-            .fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
-
-        const border = this.add
-            .graphics()
-            .lineStyle(2, 0xd4af37, 1)
-            .strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
-
-        const buttonText = this.add
-            .text(0, 0, text, {
-                fontFamily: 'Arial',
-                fontSize: '24px',
-                color: '#ffffff',
-            })
-            .setOrigin(0.5);
-
-        button.add([background, border, buttonText]);
-        button.setSize(buttonWidth, buttonHeight);
-        button.setInteractive({ useHandCursor: true });
-
-        button.on("pointerover", () => {
-            background
-                .clear()
-                .fillStyle(0x444444, 1)
-                .fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
-            border
-                .clear()
-                .lineStyle(2, 0xffe74a, 1)
-                .strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
-            this.tweens.add({
-                targets: button,
-                scale: 1.05,
-                duration: 150,
-                ease: "Sine.easeInOut",
-            });
-        });
-
-        button.on("pointerout", () => {
-            background
-                .clear()
-                .fillStyle(0x333333, 1)
-                .fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
-            border
-                .clear()
-                .lineStyle(2, 0xd4af37, 1)
-                .strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 15);
-            this.tweens.add({
-                targets: button,
-                scale: 1,
-                duration: 150,
-                ease: "Sine.easeInOut",
-            });
-        });
-
-        button.on("pointerdown", callback);
-
-        return button;
-    }}
+  viewLeaderboard() {
+    this.scene.start("LeaderboardScene", {
+      suiClient: this.suiClient,
+      account: this.account,
+    });
+  }
+}

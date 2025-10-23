@@ -11,6 +11,7 @@ import { UIScene } from "../scenes/UIScene.js";
 import { ItemLockScene } from "../scenes/ItemLockScene.js";
 import { InventoryScene } from "../scenes/InventoryScene.js";
 import { EndScene } from "../scenes/EndScene.js";
+import { AvatarScene } from '../scenes/AvatarScene.js';
 
 const PhaserGame = () => {
     const gameRef = useRef(null);
@@ -18,12 +19,12 @@ const PhaserGame = () => {
     useEffect(() => {
         if (gameRef.current) {
             const config = {
-                type: Phaser.CANVAS,
+                type: Phaser.AUTO,
                 parent: 'game-container', // This ID must match the div below
-                width: 1920,
-                height: 1080,
+                width: 1280,
+                height: 720,
                 scale: {
-                    mode: Phaser.Scale.ENVELOP,
+                    mode: Phaser.Scale.FIT,
                     autoCenter: Phaser.Scale.CENTER_BOTH,
                 },
                 physics: {
@@ -36,7 +37,7 @@ const PhaserGame = () => {
                 scene: [
                     WalletScene, MenuScene, LoadingScene, VideoScene, HomeScene, 
                     UIScene, DialogueScene, InventoryScene, ItemLockScene, 
-                    LeaderboardScene, EndScene
+                    LeaderboardScene, EndScene , AvatarScene
                 ],
             };
 
