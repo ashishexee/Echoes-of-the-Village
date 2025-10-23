@@ -270,7 +270,7 @@ export class UIScene extends Phaser.Scene {
               "0x7102f4157cdeef27cb198db30366ecd10dc7374d5a936dba2a40004371787b9d";
             const MODULE_NAME = "contracts_one";
             const SCORES_OBJECT_ID =
-              "0x8ecdcbfb483d5aae0a22ad90xfc2f040b88dd5dfbbbd28b74bb363537c634c78c55ca6d455ae547221838845f0d2412c15fe102b62e1cb0cc3e9e6df05e23839b6";
+              "0xfc2f040b88dd5dfbbbd28b74bb363537c634c78c55ca6d455ae547221838845f";
 
             const tx = new Transaction();
             tx.moveCall({
@@ -303,7 +303,7 @@ export class UIScene extends Phaser.Scene {
           console.error("Error fetching blockchain score:", error);
           baseScore = 0;
         }
-        baseScore = baseScore || 1000;
+        baseScore = baseScore || 10000;
 
         const minutes = Math.floor(this.elapsedSeconds / 60);
         const timePenalty = minutes * 50;
