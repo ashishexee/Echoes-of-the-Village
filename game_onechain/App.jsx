@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import PhaserGame from './components/PhaserGame';
+import PhaserGame from './components/phaserGame';
 import Hero from './components/landing';
 
 function App() {
