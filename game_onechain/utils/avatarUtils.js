@@ -1,6 +1,5 @@
 import { Transaction } from '@mysten/sui/transactions';
-
-const PACKAGE_ID = "0x7102f4157cdeef27cb198db30366ecd10dc7374d5a936dba2a40004371787b9d";
+import { PACKAGE_ID, MODULE_NAME } from "../oneConfig.js";
 
 export class AvatarUtils {
   static async getUserAvatar(suiClient, account) {
@@ -9,7 +8,7 @@ export class AvatarUtils {
     }
 
     try {
-      const avatarNFTType = `${PACKAGE_ID}::contracts_one::AvatarNFT`;
+      const avatarNFTType = `${PACKAGE_ID}::${MODULE_NAME}::AvatarNFT`;
       const userAvatars = await suiClient.getOwnedObjects({
         owner: account,
         filter: { StructType: avatarNFTType },

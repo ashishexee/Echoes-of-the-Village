@@ -3,7 +3,7 @@ import { AvatarUtils } from "../utils/avatarUtils.js";
 import { startNewGame, getConversation } from "../api";
 import { Transaction } from '@mysten/sui/transactions';
 
-const PACKAGE_ID = "0x7102f4157cdeef27cb198db30366ecd10dc7374d5a936dba2a40004371787b9d";
+import { PACKAGE_ID, MODULE_NAME, itemNftStructType } from "../oneConfig.js";
 export class HomeScene extends Phaser.Scene {
   constructor() {
     super({ key: "HomeScene" });
@@ -1054,7 +1054,7 @@ export class HomeScene extends Phaser.Scene {
     try {
         const tx = new Transaction();
         tx.moveCall({
-            target: `${PACKAGE_ID}::contracts_one::mint_item`, // Fixed module name
+            target: `${PACKAGE_ID}::${MODULE_NAME}::mint_item`, // use central module name
             arguments: [
                 tx.pure.address(this.account),
                 tx.pure('vector<u8>', Array.from(new TextEncoder().encode(itemName))), // Fixed pure type format
@@ -1094,7 +1094,7 @@ export class HomeScene extends Phaser.Scene {
     if (!this.suiClient || !this.account) return;
 
     try {
-        const itemNftType = `${PACKAGE_ID}::contracts_one::ItemNFT`; // Fixed module name
+        const itemNftType = itemNftStructType(); // use central struct type helper
         const objects = await this.suiClient.getOwnedObjects({
             owner: this.account,
             filter: { StructType: itemNftType },

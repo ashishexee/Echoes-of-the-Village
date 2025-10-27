@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Transaction } from "@mysten/sui/transactions";
-
+import { PACKAGE_ID , MODULE_NAME , SCORES_OBJECT_ID } from '../oneConfig';
 export class EndScene extends Phaser.Scene {
     constructor() {
         super({ key: 'EndScene' });
@@ -95,10 +95,6 @@ export class EndScene extends Phaser.Scene {
         this.submissionStatusText.setText('Submitting score to the blockchain...');
 
         try {
-            const PACKAGE_ID = "0x7102f4157cdeef27cb198db30366ecd10dc7374d5a936dba2a40004371787b9d";
-            const MODULE_NAME = "contracts_one";
-            const SCORES_OBJECT_ID = "0xfc2f040b88dd5dfbbbd28b74bb363537c634c78c55ca6d455ae547221838845f";
-
             const tx = new Transaction();
             tx.moveCall({
                 target: `${PACKAGE_ID}::${MODULE_NAME}::update_score`,
