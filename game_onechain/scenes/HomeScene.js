@@ -315,8 +315,18 @@ export class HomeScene extends Phaser.Scene {
         this.scene.get('ItemLockScene').events.on('villagerUnlocked', this.unlockVillager, this);
     }
 
+    // **NEW: Check for pending inventory items from chest openings**
+    const pendingItems = this.registry.get('pendingInventoryItems') || [];
+    if (pendingItems.length > 0) {
+      console.log('Adding pending items to inventory:', pendingItems);
+      pendingItems.forEach(item => this.playerInventory.add(item));
+      // Clear the pending items
+      this.registry.set('pendingInventoryItems', []);
+    }
+
+    // Update inventory from blockchain (existing code)
     if (this.account && this.suiClient) {
-        await this.updateInventory();
+      await this.updateInventory();
     }
 
     if (
@@ -1057,7 +1067,7 @@ export class HomeScene extends Phaser.Scene {
             target: `${PACKAGE_ID}::${MODULE_NAME}::mint_item`, // use central module name
             arguments: [
                 tx.pure.address(this.account),
-                tx.pure('vector<u8>', Array.from(new TextEncoder().encode(itemName))), // Fixed pure type format
+                tx.pure(Array.from(new TextEncoder().encode(itemName)), 'vector<u8>'),
             ],
         });
 
@@ -1094,27 +1104,33 @@ export class HomeScene extends Phaser.Scene {
     if (!this.suiClient || !this.account) return;
 
     try {
-        const itemNftType = itemNftStructType(); // use central struct type helper
-        const objects = await this.suiClient.getOwnedObjects({
-            owner: this.account,
-            filter: { StructType: itemNftType },
-            options: { showContent: true },
-        });
+      const itemNftType = itemNftStructType();
+      const objects = await this.suiClient.getOwnedObjects({
+        owner: this.account,
+        filter: { StructType: itemNftType },
+        options: { showContent: true },
+      });
 
-        const currentInventory = new Set();
-        objects.data.forEach(item => {
-            if (item.data && item.data.content && item.data.content.fields) {
-                const nameBytes = item.data.content.fields.name;
-                const itemName = String.fromCharCode.apply(null, nameBytes); // Fixed decoding method
-                currentInventory.add(itemName);
-            }
-        });
-        
-        this.playerInventory = currentInventory;
-        console.log("Player inventory updated:", Array.from(this.playerInventory));
+      // Clear and rebuild inventory from blockchain
+      this.playerInventory.clear();
+      
+      objects.data.forEach(item => {
+        if (item.data?.content?.fields) {
+          const itemName = String.fromCharCode.apply(null, item.data.content.fields.name);
+          this.playerInventory.add(itemName);
+        }
+      });
 
+      // **NEW: Also add any pending items that might not be on-chain yet**
+      const pendingItems = this.registry.get('pendingInventoryItems') || [];
+      pendingItems.forEach(item => this.playerInventory.add(item));
+      if (pendingItems.length > 0) {
+        this.registry.set('pendingInventoryItems', []);
+      }
+
+      console.log('Updated inventory:', Array.from(this.playerInventory));
     } catch (error) {
-        console.error("Failed to update inventory:", error);
+      console.error('Failed to update inventory:', error);
     }
   }
 }

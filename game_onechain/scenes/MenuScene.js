@@ -244,17 +244,13 @@ export class MenuScene extends Phaser.Scene {
         target: `${PACKAGE_ID}::${MODULE_NAME}::open_chest`,
         arguments: [
           tx.object(CHEST_REGISTRY_ID),
-          tx.object('0x8'), // Random object
-          tx.object('0x6'), // Clock object
+          tx.object('0x8'),
+          tx.object('0x6'),
         ],
       });
 
       console.log("Transaction created, signing...");
-      console.log("Using package:", PACKAGE_ID);
-      console.log("Using module:", MODULE_NAME);
-      console.log("Using chest registry:", CHEST_REGISTRY_ID);
 
-      // Check if wallet is available
       if (!window.onechainWallet) {
         throw new Error("OneChain wallet not found");
       }
@@ -269,191 +265,362 @@ export class MenuScene extends Phaser.Scene {
       });
 
       console.log("Transaction result:", result);
-      console.log("Transaction effects:", result.effects);
-      console.log("Transaction digest:", result.digest);
 
-      // Check for success - if there's a digest, the transaction went through
-      const isSuccess = result.digest && result.effects;
-
-      if (isSuccess) {
-        console.log("Chest opened successfully!");
-        this.chestStatusText.setText("Chest opened successfully!");
-        this.chestStatusText.setColor("#4CAF50");
-        
-        // Set 24-hour cooldown
-        this.chestCooldownRemaining = 24 * 60 * 60 * 1000; // 24 hours in ms
-        this.startChestCountdown();
-        this.showChestOpenAnimation();
-        
-        // Try to get item name from the transaction effects
-        let itemName = "Mystery Item";
-        
-        try {
-          // Parse the transaction effects - the effects are in binary format
-          console.log("Parsing transaction effects for created objects...");
-          
-          // Look for created objects in objectChanges first
-          if (result.objectChanges) {
-            console.log("Object changes:", result.objectChanges);
-            const createdItems = result.objectChanges.filter(change => 
-              change.type === 'created' && 
-              change.objectType && 
-              change.objectType.includes('ItemNFT')
-            );
-            
-            if (createdItems.length > 0) {
-              const itemObjectId = createdItems[0].objectId;
-              console.log("Item NFT created with ID:", itemObjectId);
-              
-              // Try to fetch the item to get its name
-              try {
-                // Add a small delay to ensure the object is available
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                const itemObject = await this.suiClient.getObject({
-                  id: itemObjectId,
-                  options: { showContent: true }
-                });
-                
-                console.log("Item object:", itemObject);
-                
-                if (itemObject.data && itemObject.data.content && itemObject.data.content.fields) {
-                  const nameBytes = itemObject.data.content.fields.name;
-                  if (nameBytes) {
-                    // Convert bytes to string
-                    itemName = this.bytesToString(nameBytes);
-                    console.log("Item name:", itemName);
-                  }
-                }
-              } catch (fetchError) {
-                console.error("Could not fetch item details:", fetchError);
-                // Fallback: try to extract from transaction data directly
-                itemName = this.extractItemNameFromTransaction(result);
-              }
-            }
-          }
-          
-          // If no object changes, try to parse from effects directly
-          if (itemName === "Mystery Item" && result.effects) {
-            console.log("Trying to extract item name from effects...");
-            itemName = this.extractItemNameFromTransaction(result);
-          }
-          
-        } catch (parseError) {
-          console.error("Could not parse item from transaction:", parseError);
-          // Use a random item name as fallback
-          const itemNames = ["FISHING_ROD", "AXE", "SHOVEL", "LANTERN", "PICKAXE", "HAMMER", "BUCKET", "SCYTHE"];
-          itemName = itemNames[Math.floor(Math.random() * itemNames.length)];
-        }
-        
-        // Show the item received after a short delay
-        this.time.delayedCall(1500, () => {
-          this.chestStatusText.setText(`Received: ${itemName}!`);
-        });
-        
-        // Update button state
-        const buttonText = this.chestButton.list?.[2];
-        if (buttonText && buttonText.setText) {
-          buttonText.setText("On Cooldown");
-        }
-        
-      } else {
-        throw new Error("Transaction failed or was rejected");
+      // Extract the item name from the transaction result
+      const itemName = this.extractItemNameFromTransaction(result);
+      
+      // SUCCESS: Update the chest UI
+      this.chestStatusText.setText(`You received: ${itemName.replace(/_/g, ' ')}!`);
+      
+      // Update cooldown (24 hours)
+      this.chestCooldownRemaining = 24 * 60 * 60 * 1000;
+      this.chestButton.setAlpha(0.5);
+      
+      // **FIX: Properly access the button text element**
+      const buttonText = this.chestButton.list?.[2];
+      if (buttonText && buttonText.setText) {
+        buttonText.setText("On Cooldown");
       }
+      
+      this.startChestCountdown();
+      
+      // Show celebration animation
+      this.showChestOpenAnimation();
+      
+      // **NEW: Update HomeScene inventory if it exists**
+      const homeScene = this.scene.get('HomeScene');
+      if (homeScene && homeScene.playerInventory) {
+        homeScene.playerInventory.add(itemName);
+        console.log(`Added ${itemName} to HomeScene inventory`);
+      }
+      
+      // **NEW: Store the item globally so it can be picked up when HomeScene starts**
+      const gameRegistry = this.registry;
+      const currentItems = gameRegistry.get('pendingInventoryItems') || [];
+      currentItems.push(itemName);
+      gameRegistry.set('pendingInventoryItems', currentItems);
+      
+      // **NEW: If we got a placeholder item name, wait a bit for the real name**
+      if (itemName === "NEW_ITEM" || itemName === "MYSTERY_ITEM") {
+        console.log("Got placeholder item name, waiting for real name...");
+        // The fetchCreatedItemName method will update everything asynchronously
+      }
+      
     } catch (error) {
       console.error("Failed to open chest:", error);
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        cause: error.cause
-      });
+      this.chestStatusText.setText("Failed to open chest");
+      this.chestButton.setAlpha(1);
       
-      let errorMessage = "Failed to open chest. ";
-      
-      if (error.message.includes('0x1001')) {
-        errorMessage = "Chest is still on cooldown!";
-      } else if (error.message.includes('endpoints failed')) {
-        errorMessage = "Network error. Try again.";
-      } else if (error.message.includes('Insufficient funds')) {
-        errorMessage = "Insufficient gas funds.";
-      } else if (error.message.includes('rejected')) {
-        errorMessage = "Transaction was rejected.";
-      } else {
-        // Show more of the error message for debugging
-        const shortError = error.message.length > 50 ? 
-          error.message.substring(0, 50) + "..." : 
-          error.message;
-        errorMessage += shortError;
-      }
-      
-      this.chestStatusText.setText(errorMessage);
-      this.chestStatusText.setColor("#ff6b6b");
-      
-      // Re-enable button after delay if chest is available
-      this.time.delayedCall(3000, () => {
-        if (this.chestStatusText && this.chestCooldownRemaining <= 0) {
-          this.chestStatusText.setText("Ready to open!");
-          this.chestStatusText.setColor("#4CAF50");
-          this.chestButton.setAlpha(1);
-          const buttonText = this.chestButton.list?.[2];
-          if (buttonText && buttonText.setText) {
-            buttonText.setText("Open Chest");
-          }
-        }
-      });
+      setTimeout(() => {
+        this.chestStatusText.setText("Ready to open!");
+      }, 3000);
     }
   }
 
   // Helper function to extract item name from transaction
   extractItemNameFromTransaction(result) {
     try {
-      // Look for events that might contain the item information
-      if (result.events && result.events.length > 0) {
-        console.log("Transaction events:", result.events);
-        for (const event of result.events) {
-          if (event.parsedJson && event.parsedJson.name) {
-            return this.bytesToString(event.parsedJson.name);
-          }
-        }
-      }
-
-      // Look through objectChanges for ItemNFT type
-      if (result.objectChanges) {
+      console.log("Full transaction result:", JSON.stringify(result, null, 2));
+      
+      // First check objectChanges (if available)
+      if (result.objectChanges && result.objectChanges.length > 0) {
         for (const change of result.objectChanges) {
+          console.log("Object change:", change);
           if (change.type === 'created' && change.objectType && change.objectType.includes('ItemNFT')) {
-            console.log("Found created ItemNFT:", change);
-            // Since we can't get the exact name, return a random item from the possible ones
-            const itemNames = ["FISHING_ROD", "AXE", "SHOVEL", "LANTERN", "PICKAXE", "HAMMER", "BUCKET", "SCYTHE"];
-            return itemNames[Math.floor(Math.random() * itemNames.length)];
+            const objectId = change.objectId;
+            console.log("Found created ItemNFT with ID:", objectId);
+            
+            this.lastCreatedItemId = objectId;
+            this.fetchCreatedItemName(objectId);
+            return "NEW_ITEM";
           }
         }
       }
 
-      // If all else fails, decode from binary effects
+      // If objectChanges is empty, parse the effects field
       if (result.effects) {
-        // The binary data contains the item name, but it's complex to parse
-        // For now, return a random item from the possible ones
-        const itemNames = ["FISHING_ROD", "AXE", "SHOVEL", "LANTERN", "PICKAXE", "HAMMER", "BUCKET", "SCYTHE"];
-        const randomIndex = Math.floor(Math.random() * itemNames.length);
-        console.log("Using random item due to parsing complexity:", itemNames[randomIndex]);
-        return itemNames[randomIndex];
+        console.log("Parsing effects field...");
+        
+        // Try to parse the effects as base64 or hex
+        let effectsData;
+        if (typeof result.effects === 'string') {
+          try {
+            // Try to decode as base64
+            const effectsBytes = Uint8Array.from(atob(result.effects), c => c.charCodeAt(0));
+            effectsData = effectsBytes;
+            console.log("Decoded effects bytes:", effectsData);
+          } catch (e) {
+            console.log("Effects is not base64, treating as string");
+            effectsData = result.effects;
+          }
+        }
+        
+        // Also check if effects has created objects in different format
+        if (result.effects.created) {
+          for (const created of result.effects.created) {
+            console.log("Created object from effects:", created);
+            if (created.objectType && created.objectType.includes('ItemNFT')) {
+              const objectId = created.reference?.objectId || created.objectId;
+              console.log("Found ItemNFT creation from effects:", objectId);
+              
+              this.lastCreatedItemId = objectId;
+              this.fetchCreatedItemName(objectId);
+              return "NEW_ITEM";
+            }
+          }
+        }
       }
 
-      return "Mystery Item";
+      // NEW: Check events for Transfer events that might indicate item creation
+      if (result.events && result.events.length > 0) {
+        console.log("Checking events for item creation...");
+        for (const event of result.events) {
+          console.log("Event:", event);
+          if (event.type && (event.type.includes('Transfer') || event.type.includes('ItemCreated'))) {
+            if (event.parsedJson) {
+              console.log("Event parsed JSON:", event.parsedJson);
+              // Look for object ID in the event
+              if (event.parsedJson.object_id || event.parsedJson.objectId) {
+                const objectId = event.parsedJson.object_id || event.parsedJson.objectId;
+                console.log("Found object ID in event:", objectId);
+                this.lastCreatedItemId = objectId;
+                this.fetchCreatedItemName(objectId);
+                return "NEW_ITEM";
+              }
+            }
+          }
+        }
+      }
+
+      // NEW: Parse the digest to try to find created objects via a different method
+      if (result.digest) {
+        console.log("Using digest to fetch transaction details:", result.digest);
+        this.fetchTransactionDetails(result.digest);
+        return "NEW_ITEM";
+      }
+
+      console.log("Could not extract item name, using fallback");
+      return "MYSTERY_ITEM";
     } catch (error) {
       console.error("Error extracting item name:", error);
-      return "Mystery Item";
+      return "UNKNOWN_ITEM";
+    }
+  }
+
+  // NEW: Method to fetch transaction details using the digest
+  async fetchTransactionDetails(digest) {
+    try {
+      console.log("Fetching transaction details for digest:", digest);
+      
+      // Wait a bit for the transaction to be processed
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      const txDetails = await this.suiClient.getTransactionBlock({
+        digest: digest,
+        options: {
+          showEffects: true,
+          showEvents: true,
+          showObjectChanges: true,
+          showInput: true,
+          showRawInput: false,
+        }
+      });
+      
+      console.log("Transaction details:", txDetails);
+      
+      // Check object changes in the detailed response
+      if (txDetails.objectChanges) {
+        for (const change of txDetails.objectChanges) {
+          console.log("Detailed object change:", change);
+          if (change.type === 'created' && change.objectType && change.objectType.includes('ItemNFT')) {
+            const objectId = change.objectId;
+            console.log("Found ItemNFT in detailed transaction:", objectId);
+            
+            this.lastCreatedItemId = objectId;
+            this.fetchCreatedItemName(objectId);
+            return;
+          }
+        }
+      }
+      
+      // Check effects in the detailed response
+      if (txDetails.effects && txDetails.effects.created) {
+        for (const created of txDetails.effects.created) {
+          console.log("Detailed created object:", created);
+          if (created.objectType && created.objectType.includes('ItemNFT')) {
+            const objectId = created.reference.objectId;
+            console.log("Found ItemNFT in detailed effects:", objectId);
+            
+            this.lastCreatedItemId = objectId;
+            this.fetchCreatedItemName(objectId);
+            return;
+          }
+        }
+      }
+      
+      console.log("Could not find ItemNFT in detailed transaction");
+    } catch (error) {
+      console.error("Error fetching transaction details:", error);
+    }
+  }
+
+  // NEW: Method to fetch the created item name
+  async fetchCreatedItemName(objectId) {
+    try {
+      console.log("Fetching item details for:", objectId);
+      
+      // Add a longer delay to ensure the object is available on-chain
+      await new Promise(resolve => setTimeout(resolve, 4000));
+      
+      const objectDetails = await this.suiClient.getObject({
+        id: objectId,
+        options: { 
+          showContent: true,
+          showType: true,
+          showOwner: true,
+          showPreviousTransaction: true
+        }
+      });
+      
+      console.log("Object details:", objectDetails);
+      
+      if (objectDetails.data && objectDetails.data.content && objectDetails.data.content.fields) {
+        const itemName = this.bytesToString(objectDetails.data.content.fields.name);
+        console.log("Extracted item name:", itemName);
+        
+        // Update the status text with the correct item name
+        if (this.chestStatusText) {
+          this.chestStatusText.setText(`You received: ${itemName.replace(/_/g, ' ')}!`);
+        }
+        
+        // Update inventories with the correct item name
+        const homeScene = this.scene.get('HomeScene');
+        if (homeScene && homeScene.playerInventory) {
+          // Remove the placeholder and add the real item
+          homeScene.playerInventory.delete("NEW_ITEM");
+          homeScene.playerInventory.delete("MYSTERY_ITEM");
+          homeScene.playerInventory.add(itemName);
+          console.log(`Updated HomeScene inventory with correct item: ${itemName}`);
+        }
+        
+        // Update pending items with correct name
+        const gameRegistry = this.registry;
+        const currentItems = gameRegistry.get('pendingInventoryItems') || [];
+        const updatedItems = currentItems.filter(item => 
+          item !== "NEW_ITEM" && item !== "MYSTERY_ITEM"
+        );
+        updatedItems.push(itemName);
+        gameRegistry.set('pendingInventoryItems', updatedItems);
+        
+        return itemName;
+      } else {
+        console.error("Could not extract item details from object, trying alternative approach");
+        
+        // Try to get all objects owned by the user and find the most recent ItemNFT
+        await this.findRecentItemNFT();
+      }
+    } catch (error) {
+      console.error("Error fetching created item name:", error);
+      
+      // Try alternative approach - get all user's ItemNFTs and find the newest one
+      await this.findRecentItemNFT();
+    }
+  }
+
+  // NEW: Alternative method to find the most recently created ItemNFT
+  async findRecentItemNFT() {
+    try {
+      console.log("Trying alternative approach: finding recent ItemNFT for user");
+      
+      const itemNftType = `${PACKAGE_ID}::${MODULE_NAME}::ItemNFT`;
+      const objects = await this.suiClient.getOwnedObjects({
+        owner: this.account,
+        filter: { StructType: itemNftType },
+        options: { 
+          showContent: true,
+          showType: true,
+          showPreviousTransaction: true
+        },
+      });
+
+      console.log("User's ItemNFTs:", objects);
+
+      if (objects.data && objects.data.length > 0) {
+        // Sort by creation time or use the last one
+        const mostRecentItem = objects.data[objects.data.length - 1];
+        
+        if (mostRecentItem.data && mostRecentItem.data.content && mostRecentItem.data.content.fields) {
+          const itemName = this.bytesToString(mostRecentItem.data.content.fields.name);
+          console.log("Found recent item:", itemName);
+          
+          // Update the status text with the correct item name
+          if (this.chestStatusText) {
+            this.chestStatusText.setText(`You received: ${itemName.replace(/_/g, ' ')}!`);
+          }
+          
+          // Update inventories with the correct item name
+          const homeScene = this.scene.get('HomeScene');
+          if (homeScene && homeScene.playerInventory) {
+            homeScene.playerInventory.delete("NEW_ITEM");
+            homeScene.playerInventory.delete("MYSTERY_ITEM");
+            homeScene.playerInventory.add(itemName);
+            console.log(`Updated HomeScene inventory with correct item: ${itemName}`);
+          }
+          
+          // Update pending items with correct name
+          const gameRegistry = this.registry;
+          const currentItems = gameRegistry.get('pendingInventoryItems') || [];
+          const updatedItems = currentItems.filter(item => 
+            item !== "NEW_ITEM" && item !== "MYSTERY_ITEM"
+          );
+          updatedItems.push(itemName);
+          gameRegistry.set('pendingInventoryItems', updatedItems);
+          
+          return itemName;
+        }
+      }
+      
+      console.log("Could not find any ItemNFTs for user");
+    } catch (error) {
+      console.error("Error in findRecentItemNFT:", error);
     }
   }
 
   // Helper function to convert bytes to string
   bytesToString(bytes) {
-    if (Array.isArray(bytes)) {
-      return String.fromCharCode(...bytes);
-    } else if (typeof bytes === 'string') {
-      return bytes;
+    try {
+      console.log("Converting bytes to string:", bytes);
+      
+      if (Array.isArray(bytes)) {
+        // Convert array of numbers to string
+        const result = String.fromCharCode(...bytes);
+        console.log("Converted array to string:", result);
+        return result;
+      } else if (typeof bytes === 'string') {
+        console.log("Already a string:", bytes);
+        return bytes;
+      } else if (bytes && typeof bytes === 'object') {
+        // Handle object format that might contain the actual bytes
+        if (bytes.data && Array.isArray(bytes.data)) {
+          const result = String.fromCharCode(...bytes.data);
+          console.log("Converted object.data to string:", result);
+          return result;
+        }
+        // Try to convert object values if it's a different format
+        const values = Object.values(bytes);
+        if (values.length > 0 && typeof values[0] === 'number') {
+          const result = String.fromCharCode(...values);
+          console.log("Converted object values to string:", result);
+          return result;
+        }
+      }
+      
+      console.log("Could not convert bytes, using fallback");
+      return "Unknown Item";
+    } catch (error) {
+      console.error("Error in bytesToString:", error, "Input:", bytes);
+      return "Unknown Item";
     }
-    return "Unknown Item";
   }
 
   startChestCountdown() {
