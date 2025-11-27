@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { AvatarUtils } from "../utils/avatarUtils.js";
 import { Transaction } from "@mysten/sui/transactions";
-import { PACKAGE_ID, MODULE_NAME, CHEST_REGISTRY_ID } from "../oneConfig.js";
+import { PACKAGE_ID, MODULE_NAME, CHEST_REGISTRY_ID , TREASURY_OBJECT_ID , CLOCK_OBJECT_ID} from "../oneConfig.js";
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -13,6 +13,10 @@ export class MenuScene extends Phaser.Scene {
     this.chestTimer = null;
     this.chestButton = null;
     this.chestStatusText = null;
+
+    // spinner state
+    this.spinner = null;
+    this.spinnerTween = null;
   }
 
   init(data) {
@@ -224,6 +228,13 @@ export class MenuScene extends Phaser.Scene {
     if (!canOpen) {
       this.chestButton.setAlpha(0.5);
     }
+
+    // Create a spinner next to the chest (hidden by default)
+    if (!this.spinner) {
+      this.spinner = this.createSpinner(x + 90, y + 10);
+      this.spinner.setDepth(200);
+      this.spinner.setVisible(false);
+    }
   }
 
   async openChest() {
@@ -232,6 +243,8 @@ export class MenuScene extends Phaser.Scene {
       return;
     }
 
+    // show spinner while processing
+    this.showSpinner();
     this.chestStatusText.setText("Opening chest...");
     this.chestButton.setAlpha(0.5);
 
@@ -268,10 +281,19 @@ export class MenuScene extends Phaser.Scene {
 
       // Extract the item name from the transaction result
       const itemName = this.extractItemNameFromTransaction(result);
-      
-      // SUCCESS: Update the chest UI
-      this.chestStatusText.setText(`You received: ${itemName.replace(/_/g, ' ')}!`);
-      
+
+      // If itemName is placeholder, wait for final parsing before showing
+      if (itemName === "NEW_ITEM" || itemName === "MYSTERY_ITEM") {
+        this.chestStatusText.setText("Processing item...");
+        // fetchCreatedItemName will update status text when real name available
+      } else {
+        // immediate final name available, update UI
+        this.chestStatusText.setText(`You received: ${itemName.replace(/_/g, ' ')}!`);
+      }
+
+      // Hide spinner once we've at least started background parsing
+      this.hideSpinner();
+
       // Update cooldown (24 hours)
       this.chestCooldownRemaining = 24 * 60 * 60 * 1000;
       this.chestButton.setAlpha(0.5);
@@ -303,11 +325,12 @@ export class MenuScene extends Phaser.Scene {
       // **NEW: If we got a placeholder item name, wait a bit for the real name**
       if (itemName === "NEW_ITEM" || itemName === "MYSTERY_ITEM") {
         console.log("Got placeholder item name, waiting for real name...");
-        // The fetchCreatedItemName method will update everything asynchronously
+        // fetchCreatedItemName will update UI when available
       }
       
     } catch (error) {
       console.error("Failed to open chest:", error);
+      this.hideSpinner();
       this.chestStatusText.setText("Failed to open chest");
       this.chestButton.setAlpha(1);
       
@@ -487,6 +510,41 @@ export class MenuScene extends Phaser.Scene {
       if (objectDetails.data && objectDetails.data.content && objectDetails.data.content.fields) {
         const itemName = this.bytesToString(objectDetails.data.content.fields.name);
         console.log("Extracted item name:", itemName);
+        
+        // NEW: Show a celebratory text popup on screen
+        const displayText = this.add.text(
+          this.cameras.main.centerX,
+          this.cameras.main.centerY - 150,
+          `You received: ${itemName.replace(/_/g, ' ')}!`,
+          {
+            fontFamily: "Georgia, serif",
+            fontSize: "32px",
+            color: "#ffd700",
+            align: "center",
+            stroke: '#000000',
+            strokeThickness: 4,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            padding: { x: 30, y: 20 }
+          }
+        ).setOrigin(0.5).setDepth(500);
+
+        // Animate it: fade in, stay, then fade out
+        this.tweens.add({
+          targets: displayText,
+          alpha: { from: 0, to: 1 },
+          duration: 300,
+          ease: 'Power2.out'
+        });
+
+        this.time.delayedCall(3000, () => {
+          this.tweens.add({
+            targets: displayText,
+            alpha: 0,
+            duration: 500,
+            ease: 'Power2.in',
+            onComplete: () => displayText.destroy()
+          });
+        });
         
         // Update the status text with the correct item name
         if (this.chestStatusText) {
@@ -809,12 +867,61 @@ export class MenuScene extends Phaser.Scene {
     return button;
   }
 
-  startGame() {
-    this.scene.start("HomeScene", {
-      suiClient: this.suiClient,
-      account: this.account,
-      userAvatar: this.userAvatar,
-    });
+  async startGame() {
+    if (!this.suiClient || !this.account) {
+      console.error("Wallet not connected");
+      return;
+    }
+
+    // 1. Show loading feedback
+    const loadingText = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY + 150, 'Paying Entry Fee (0.05 OCT)...', {
+      fontFamily: 'Arial', fontSize: '24px', color: '#d4af37', backgroundColor: 'rgba(0,0,0,0.8)', padding: { x: 20, y: 10 }
+    }).setOrigin(0.5).setDepth(1000);
+
+    try {
+      // 2. Prepare Transaction
+      const tx = new Transaction();
+      const ENTRANCE_FEE = 50000000; // 0.05 OCT (matches contract constant)
+
+      // Split the coin for the fee from gas
+      const [feeCoin] = tx.splitCoins(tx.gas, [tx.pure.u64(ENTRANCE_FEE)]);
+
+      // Call start_game in the contract
+      tx.moveCall({
+        target: `${PACKAGE_ID}::${MODULE_NAME}::start_game`,
+        arguments: [
+          tx.object(TREASURY_OBJECT_ID),
+          tx.pure.u8(1), // Difficulty: 1 (Easy)
+          feeCoin,       // The split coin object
+          tx.object(CLOCK_OBJECT_ID)
+        ]
+      });
+
+      // 3. Execute Transaction
+      const result = await window.onechainWallet.signAndExecuteTransaction({
+        transaction: tx,
+        options: { showEffects: true }
+      });
+
+      console.log("Entry fee paid, game started:", result);
+      loadingText.setText("Payment Successful! Entering Village...");
+      
+      // 4. Wait a moment then transition
+      this.time.delayedCall(1000, () => {
+        this.scene.start("HomeScene", {
+          suiClient: this.suiClient,
+          account: this.account,
+          userAvatar: this.userAvatar,
+          gameSessionDigest: result.digest // Pass transaction digest if needed
+        });
+      });
+
+    } catch (error) {
+      console.error("Failed to start game:", error);
+      loadingText.setText("Payment Failed or Cancelled.");
+      loadingText.setColor("#ff6b6b");
+      this.time.delayedCall(3000, () => loadingText.destroy());
+    }
   }
 
   viewLeaderboard() {
@@ -822,6 +929,50 @@ export class MenuScene extends Phaser.Scene {
       suiClient: this.suiClient,
       account: this.account,
     });
+  }
+
+  // create a simple rotating spinner (graphics) at given position
+  createSpinner(x, y) {
+    const container = this.add.container(x, y);
+
+    const ring = this.add.graphics();
+    ring.lineStyle(6, 0xd4af37, 0.9);
+    ring.strokeCircle(0, 0, 14);
+    ring.alpha = 0.9;
+
+    const arc = this.add.graphics();
+    arc.fillStyle(0xd4af37, 1);
+    arc.slice(0, 0, 14, Phaser.Math.DegToRad(330), Phaser.Math.DegToRad(30), false);
+    arc.fillPath();
+    arc.alpha = 0.95;
+
+    container.add([ring, arc]);
+
+    // rotate the arc using a tween when shown
+    return container;
+  }
+
+  showSpinner() {
+    if (!this.spinner) return;
+    this.spinner.setVisible(true);
+    if (this.spinnerTween) this.spinnerTween.stop();
+    this.spinnerTween = this.tweens.add({
+      targets: this.spinner,
+      angle: 360,
+      duration: 800,
+      repeat: -1,
+      ease: 'Linear'
+    });
+  }
+
+  hideSpinner() {
+    if (!this.spinner) return;
+    if (this.spinnerTween) {
+      this.spinnerTween.stop();
+      this.spinnerTween = null;
+    }
+    this.spinner.setVisible(false);
+    this.spinner.angle = 0;
   }
 
   destroy() {
