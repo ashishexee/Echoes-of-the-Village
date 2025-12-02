@@ -94,7 +94,6 @@ export class LoadingScene extends Phaser.Scene {
     this.load.image("stove01", "assets/images/world/stove01.png");
     this.load.image("animals01", "assets/images/world/animals01.png");
     this.load.audio("background_music", "assets/music/background_audio.mp3");
-    this.load.audio("villager_accept", "assets/music/villager_accept.ogg");
     this.load.audio("thunder", "assets/music/thunder.mp3");
     
     for (let i = 1; i <= 10; i++) {

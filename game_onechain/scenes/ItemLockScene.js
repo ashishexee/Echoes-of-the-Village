@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { Transaction } from '@mysten/sui/transactions';
 
-const PACKAGE_ID = "0x7102f4157cdeef27cb198db30366ecd10dc7374d5a936dba2a40004371787b9d"; // Fixed package ID
+import { PACKAGE_ID, MODULE_NAME, itemNftStructType } from "../oneConfig.js";
 
 export class ItemLockScene extends Phaser.Scene {
     constructor() {
@@ -74,7 +74,7 @@ export class ItemLockScene extends Phaser.Scene {
         this.statusText.setText("Checking your wallet for the item...");
 
         try {
-            const itemNftType = `${PACKAGE_ID}::contracts_one::ItemNFT`;
+            const itemNftType = itemNftStructType();
             const objects = await this.suiClient.getOwnedObjects({
                 owner: this.account,
                 filter: { StructType: itemNftType },
@@ -101,7 +101,7 @@ export class ItemLockScene extends Phaser.Scene {
 
             const tx = new Transaction();
             tx.moveCall({
-                target: `${PACKAGE_ID}::contracts_one::burn_item`,
+                target: `${PACKAGE_ID}::${MODULE_NAME}::burn_item`,
                 arguments: [tx.object(itemToBurn.objectId)],
             });
 

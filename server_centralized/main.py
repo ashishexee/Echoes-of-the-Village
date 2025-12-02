@@ -3,24 +3,30 @@
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Dict
+from pydantic import BaseModel, Field, validator
+from typing import Optional, Dict
+import logging
 import uuid
 import os
 import traceback
 import sys
+from datetime import datetime
 from dotenv import load_dotenv
 
 from schemas import *
 from game_logic.engine import GameEngine
 from game_logic.state_manager import GameState
+from reward_service import RewardManager, RewardValidator
 
-# ... (startup code remains the same) ...
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Load environment variables from a .env file if it exists
 load_dotenv()
 
-# Initialize the FastAPI app and the Game Engine
-app = FastAPI()
+app = FastAPI(title="Echoes of the Village - Game Backend")
+
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,30 +34,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# In-memory storage
+active_games: dict[str, GameState] = {}
+completed_games: dict[str, dict] = {}
+
 API_KEY = os.environ.get("GOOGLE_API_KEY")
 game_engine: GameEngine
-active_games: Dict[str, GameState] = {}
 
 @app.on_event("startup")
 async def startup_event():
-    """Initializes the game engine on server startup."""
     global game_engine
     print("--- Server Startup ---")
     if not API_KEY or API_KEY == "YOUR_GOOGLE_API_KEY_HERE":
-        print("!!! FATAL ERROR: API Key not found. Please set the GOOGLE_API_KEY environment variable. !!!")
         sys.exit("API Key is not configured. Shutting down.")
     
     print("API Key found. Initializing Game Engine...")
     game_engine = GameEngine(api_key=API_KEY)
     if not game_engine.llm_api.model:
-        sys.exit("Failed to initialize Gemini Model. Please check your API key and network connection.")
+        sys.exit("Failed to initialize Gemini Model.")
     print("Game Engine initialized successfully.")
 
 @app.post("/game/new", response_model=NewGameResponse)
 async def create_new_game(request: NewGameRequest):
     game_id = str(uuid.uuid4())
     try:
-        # num_villagers is no longer needed as the engine uses the full roster
         game_state = game_engine.start_new_game(
             game_id=game_id,
             num_inaccessible_locations=request.num_inaccessible_locations,
@@ -74,7 +81,6 @@ async def create_new_game(request: NewGameRequest):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to generate new game: {e}")
 
-# ... (the rest of the endpoints remain the same) ...
 @app.post("/game/{game_id}/interact", response_model=InteractResponse)
 async def interact(game_id: str, request: InteractRequest):
     if game_id not in active_games:
@@ -88,7 +94,6 @@ async def interact(game_id: str, request: InteractRequest):
             raise HTTPException(status_code=400, detail="Invalid villager ID.")
             
         villager_name = game_state.villagers[villager_index]["name"]
-        # FIX: Add a check to ensure msg.get('content') is not None before calling .lower()
         frustration = {"friends": len([
             msg for msg in game_state.full_npc_memory.get(villager_name, [])
             if msg.get("content") and "friend" in msg.get("content").lower()
@@ -137,3 +142,135 @@ async def guess(game_id: str, request: GuessRequest):
         is_correct=is_correct,
         is_true_ending=is_true_ending
     )
+
+# ============== Reward System Models ==============
+
+class CompleteGameRequest(BaseModel):
+    userAddress: str = Field(..., description="Player's wallet address (0x...)")
+    gameSessionId: str = Field(..., description="ID of the game session (transaction digest from start_game)")
+    score: int = Field(..., ge=0, description="Final score achieved")
+    won: bool = Field(..., description="Whether player won the game")
+    isTrueEnding: bool = Field(default=False, description="Whether true ending was found")
+    timestamp: Optional[str] = Field(default=None, description="ISO timestamp of game completion")
+    
+    @validator('userAddress')
+    def validate_user_address(cls, v):
+        if not RewardValidator.validate_user_address(v):
+            raise ValueError("Invalid wallet address format")
+        return v
+    
+    @validator('gameSessionId')
+    def validate_session_id(cls, v):
+        if not v or len(v) < 10:
+            raise ValueError("Invalid game session ID")
+        return v
+    
+    @validator('score')
+    def validate_score(cls, v):
+        if not RewardValidator.validate_score(v):
+            raise ValueError("Invalid score value")
+        return v
+
+class CompleteGameResponse(BaseModel):
+    success: bool
+    message: str
+    gameSessionId: str
+    userAddress: str
+    score: int
+    won: bool
+    isTrueEnding: bool
+    rewardAmount: int
+    rewardClaimId: Optional[str] = None
+    completedAt: str
+
+# ============== Reward Endpoints ==============
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "service": "Echoes of the Village Backend",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.post("/api/complete-game", response_model=CompleteGameResponse)
+async def complete_game(request: CompleteGameRequest):
+    """
+    Complete game and return reward calculation.
+    Frontend will call complete_game_and_create_proof on-chain.
+    """
+    try:
+        logger.info(f"Processing game completion: {request.userAddress}")
+        
+        if not RewardValidator.validate_user_address(request.userAddress):
+            raise HTTPException(status_code=400, detail="Invalid wallet address")
+        if not RewardValidator.validate_score(request.score):
+            raise HTTPException(status_code=400, detail="Invalid score")
+        
+        reward_manager = RewardManager(db_session=None)
+        
+        result = reward_manager.create_game_completion_record(
+            user_address=request.userAddress,
+            game_session_id=request.gameSessionId,
+            score=request.score,
+            won=request.won,
+            is_true_ending=request.isTrueEnding
+        )
+        
+        completion_id = f"{request.userAddress}_{request.gameSessionId}"
+        completed_games[completion_id] = result
+        
+        logger.info(f"Game completion processed: {result}")
+        
+        message = "Game completed! "
+        if result["won"] and result["rewardAmount"] > 0:
+            message += f"Reward: {result['rewardAmount'] / 1e9:.2f} OCT - Create proof on-chain to claim."
+        
+        return CompleteGameResponse(
+            success=True,
+            message=message,
+            gameSessionId=result["gameSessionId"],
+            userAddress=result["userAddress"],
+            score=result["score"],
+            won=result["won"],
+            isTrueEnding=result["isTrueEnding"],
+            rewardAmount=result["rewardAmount"],
+            rewardClaimId=None,  # No claim ID needed anymore
+            completedAt=result["completedAt"]
+        )
+        
+    except ValueError as e:
+        logger.warning(f"Validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error completing game: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/api/completions/{user_address}")
+async def get_user_completions(user_address: str):
+    """Get all game completions for a user"""
+    try:
+        if not RewardValidator.validate_user_address(user_address):
+            raise HTTPException(status_code=400, detail="Invalid user address")
+        
+        user_completions = [
+            comp for comp_id, comp in completed_games.items()
+            if comp["userAddress"] == user_address
+        ]
+        
+        return {
+            "success": True,
+            "userAddress": user_address,
+            "completions": user_completions,
+            "totalRewards": sum(c["rewardAmount"] for c in user_completions if c["won"])
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting completions: {e}")
+        raise HTTPException(status_code=500, detail="Error retrieving completions")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

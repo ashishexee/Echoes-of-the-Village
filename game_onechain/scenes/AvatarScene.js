@@ -2,9 +2,7 @@ import Phaser from "phaser";
 import { Transaction } from '@mysten/sui/transactions';
 import { AvatarUtils } from "../utils/avatarUtils.js";
 
-const PACKAGE_ID = "0x7102f4157cdeef27cb198db30366ecd10dc7374d5a936dba2a40004371787b9d";
-const AVATAR_REGISTRY_OBJECT_ID = "0xdfdf053aff44ce37f1e15270db22ab18e8f6b5f9e5770eb0556bb400e2cdfcd6";
-const RANDOM_OBJECT_ID = "0x8";
+import { PACKAGE_ID, MODULE_NAME, AVATAR_REGISTRY_OBJECT_ID, RANDOM_OBJECT_ID } from "../oneConfig.js";
 
 export class AvatarScene extends Phaser.Scene {
   constructor() {
@@ -72,7 +70,7 @@ export class AvatarScene extends Phaser.Scene {
     try {
       const tx = new Transaction();
       tx.moveCall({
-        target: `${PACKAGE_ID}::contracts_one::has_avatar`,
+        target: `${PACKAGE_ID}::${MODULE_NAME}::has_avatar`,
         arguments: [tx.object(AVATAR_REGISTRY_OBJECT_ID), tx.pure.address(this.account)],
       });
       const result = await this.suiClient.devInspectTransactionBlock({
@@ -206,7 +204,7 @@ export class AvatarScene extends Phaser.Scene {
     try {
       const tx = new Transaction();
       tx.moveCall({
-        target: `${PACKAGE_ID}::contracts_one::ensure_avatar`,
+        target: `${PACKAGE_ID}::${MODULE_NAME}::ensure_avatar`,
         arguments: [tx.object(AVATAR_REGISTRY_OBJECT_ID), tx.object(RANDOM_OBJECT_ID)],
       });
       const result = await window.onechainWallet.signAndExecuteTransaction({ transaction: tx });

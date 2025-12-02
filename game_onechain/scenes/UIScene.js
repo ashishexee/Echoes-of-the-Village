@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { chooseLocation } from "../api";
 import { Transaction } from "@mysten/sui/transactions";
+import { PACKAGE_ID, MODULE_NAME, SCORES_OBJECT_ID } from "../oneConfig.js";
 
 export class UIScene extends Phaser.Scene {
   constructor() {
@@ -23,6 +24,7 @@ export class UIScene extends Phaser.Scene {
       this.account = data.account;
       this.suiClient = data.suiClient;
       this.difficulty = data.difficulty || "Easy";
+      this.gameSessionId = data.gameSessionId
     }
   }
 
@@ -259,61 +261,27 @@ export class UIScene extends Phaser.Scene {
       this.time.delayedCall(1500, async () => {
         const homeScene = this.scene.get("HomeScene");
 
-        // --- Fetch current score from blockchain ---
-        let baseScore = 0;
-        try {
-          // Try to get the current blockchain score
-          if (this.account && window.onechainWallet) {
-            feedbackText.setText(`Fetching your score from blockchain...`);
-
-            const PACKAGE_ID =
-              "0x7102f4157cdeef27cb198db30366ecd10dc7374d5a936dba2a40004371787b9d";
-            const MODULE_NAME = "contracts_one";
-            const SCORES_OBJECT_ID =
-              "0xfc2f040b88dd5dfbbbd28b74bb363537c634c78c55ca6d455ae547221838845f";
-
-            const tx = new Transaction();
-            tx.moveCall({
-              target: `${PACKAGE_ID}::${MODULE_NAME}::get_score`,
-              arguments: [
-                tx.object(SCORES_OBJECT_ID),
-                tx.pure.address(this.account),
-              ],
-            });
-
-            const result = await this.suiClient.devInspectTransactionBlock({
-              sender: this.account,
-              transactionBlock: tx,
-            });
-
-            if (
-              result.effects.status.status === "success" &&
-              result.results?.[0]?.returnValues
-            ) {
-              const [bytes] = result.results[0].returnValues[0];
-              const score = new DataView(new Uint8Array(bytes).buffer).getBigUint64(
-                0,
-                true
-              );
-              baseScore = Number(score);
-              console.log("Current blockchain score:", baseScore);
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching blockchain score:", error);
-          baseScore = 0;
-        }
-        baseScore = baseScore || 10000;
-
+        // --- Calculate game score (NOT blockchain score) ---
+        const BASE_SCORE = 10000;
         const minutes = Math.floor(this.elapsedSeconds / 60);
         const timePenalty = minutes * 50;
         const guessPenalty = homeScene.guessCount * 1500;
         const nftBonus = homeScene.playerInventory.size * 250;
         const trueEndingBonus = result.is_true_ending ? 500 : 0;
-        let finalScore =
-          baseScore - timePenalty - guessPenalty + nftBonus + trueEndingBonus;
+        
+        let finalScore = BASE_SCORE - timePenalty - guessPenalty + nftBonus + trueEndingBonus;
+        
         // Ensure the score is not negative
         finalScore = Math.max(0, finalScore);
+
+        console.log("Game score calculation:", {
+          base: BASE_SCORE,
+          timePenalty,
+          guessPenalty,
+          nftBonus,
+          trueEndingBonus,
+          finalScore
+        });
 
         const endData = {
           isCorrect: result.is_correct,
@@ -325,6 +293,7 @@ export class UIScene extends Phaser.Scene {
           account: this.account,
           suiClient: this.suiClient,
           difficulty: this.difficulty,
+          gameSessionId: this.gameSessionId
         };
 
         // Stop the game scenes and launch the EndScene
@@ -333,13 +302,27 @@ export class UIScene extends Phaser.Scene {
         this.scene.start("EndScene", endData);
       });
     } else {
-      // If the guess is wrong, just show a message and let the player continue
-      feedbackText.setText(`Investigation failed. Please try again.`);
+      // If the guess is wrong, add time penalty and show message
+      const TIME_PENALTY_SECONDS = 60; // 1 minute penalty
+      this.elapsedSeconds += TIME_PENALTY_SECONDS;
+      this.registry.set("elapsedTime", this.elapsedSeconds);
+      this.timerText.setText(this.formatTime(this.elapsedSeconds));
+      
+      feedbackText.setText(`Wrong location! +1 minute penalty added.`);
+      feedbackText.setColor('#e74c3c');
+      
       const homeScene = this.scene.get("HomeScene");
       if (homeScene) {
         homeScene.guessCount++; // Increment the guess counter
       }
-      this.time.delayedCall(2000, () => {
+      
+      // Flash the timer red to indicate penalty
+      this.timerText.setColor('#e74c3c');
+      this.time.delayedCall(1000, () => {
+        this.timerText.setColor('#d4af37'); // Reset to gold
+      });
+      
+      this.time.delayedCall(2500, () => {
         feedbackText.destroy();
       });
     }
