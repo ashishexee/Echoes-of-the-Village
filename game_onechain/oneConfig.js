@@ -1,15 +1,34 @@
-export const PACKAGE_ID = "0x2fb55b1eee48aacfa4c5a5c0faf8839cacf1b0abc3f20564b9a69105bc808c32";
-export const MODULE_NAME = "contract";
+import { API_BASE_URL } from "./api";
 
-// Common object IDs used across the UI - UPDATED WITH NEW IDs
-export const SCORES_OBJECT_ID = "0x50420895fd2d38418ba9afd2e99274accd7b338ca69a296c63c93dd425932ebb";           // From init_scores
-export const AVATAR_REGISTRY_OBJECT_ID = "0x7914e6a4a13a5faf1284cd38b4979c533c737940bd5ca599062e0ac9a68b934e"; // From init_avatar_registry  
-export const CHEST_REGISTRY_ID = "0x208203ed49e920b92a2c8dd1ee17ed9bcfbf173b24107aa002aa6ffe30120a29";          // From init_chest_registry
+export const PACKAGE_ID =
+  "0xcaf20ed5933ffc2dfb78b5c61f03ee296e16afafd187ec3d780037104773173e";
+
+export const MODULE_NAME = "contracts";
+
+// ---------- UPDATED ON-CHAIN OBJECT IDs ----------
+export const SCORES_OBJECT_ID =
+  "0x4b95d0d6a71ad41ccc4957cb9b42f4fe42f39ebecb15d388ca3eb401badd3f60";
+
+export const AVATAR_REGISTRY_OBJECT_ID =
+  "0xc58e94a98da35eaf1b1735d7497e7cab11445be50e00cebb163ba3417e5d5028";
+
+export const CHEST_REGISTRY_ID =
+  "0x157716dfdbd8720fd7ec13c7785e2023c185c9c8e016917f1f53fc4573ea8300";
+
+export const REWARD_POOL_OBJECT_ID =
+  "0x99be9f1f7c996738a6c2e1e1fd273af5b40522deee411bcf7cbba476c2da0282";
+
+// ---------- FIXED CONSTANTS ----------
 export const RANDOM_OBJECT_ID = "0x8";
-export const TREASURY_OBJECT_ID = "0x672cccd6ebde3ee64da648e5928d79e17ab8d773d97fdf3e654c8146491bd458";   // phase 2 updated
-export const CLOCK_OBJECT_ID = "0x6";
+export const CLOCK_OBJECT_ID =
+  "0x0000000000000000000000000000000000000000000000000000000000000006";
 
-// Convenience helper for struct types
-export function itemNftStructType(packageId = PACKAGE_ID, moduleName = MODULE_NAME, structName = "ItemNFT") {
+export const BACKEND_API_URL = API_BASE_URL;
+
+export function itemNftStructType(
+  packageId = PACKAGE_ID,
+  moduleName = MODULE_NAME,
+  structName = "ItemNFT"
+) {
   return `${packageId}::${moduleName}::${structName}`;
 }

@@ -40,11 +40,15 @@ export class HomeScene extends Phaser.Scene {
       this.gameData = data.existingGameData;
       console.log("Existing game data loaded:", this.gameData); 
 
+
     }
     this.suiClient = data ? data.suiClient : null;
     this.account = data ? data.account : null;
     this.userAvatar = data ? data.userAvatar : null; // Receive avatar data
     this.difficulty = data ? data.difficulty || "Easy" : "Easy";
+// this.gameSessionId = data?.gameSessionId ?? null;
+// console.log("HomeScene → gameSessionId:", this.gameSessionId ?? "NOT PRESENT");
+
   }
 
   preload() {
@@ -57,10 +61,8 @@ export class HomeScene extends Phaser.Scene {
 
     // Ensure audio used in this scene is available in the cache.
     // LoadingScene loads these too, but preload them here so HomeScene can run standalone.
-    this.load.audio("villager_accept", "assets/music/villager_accept.ogg");
     this.load.audio("thunder", "assets/music/thunder.mp3");
-    
-    // --- FIX: Load all necessary game assets ---
+    this.load.audio("villager_accept", "/assets/music/villager_accept.ogg");
     this.load.image("background", "assets/images/world/background02.png");
     this.load.image("path", "assets/images/world/path.png");
     this.load.image("path_rounded", "assets/images/world/path_rounded.png");
@@ -341,7 +343,8 @@ export class HomeScene extends Phaser.Scene {
             account: this.account, 
             suiClient: this.suiClient, 
             inaccessibleLocations: this.gameData.inaccessible_locations,
-            difficulty: this.difficulty 
+            difficulty: this.difficulty ,
+            gameSessionId: game_id
         });
         this.scene.bringToTop('UIScene');
     }
@@ -795,11 +798,25 @@ export class HomeScene extends Phaser.Scene {
     const worldY = tileY * this.tileSize;
 
     const avatarImageKey = AvatarUtils.getAvatarImageKey(this.userAvatar.avatarId);
-    
-    // Create player sprite using their avatar NFT
-    this.player = this.physics.add.image(worldX, worldY, avatarImageKey)
+
+    // Use a physics-enabled sprite to ensure a body exists on every run
+    // (physics.add.image can sometimes result in a missing body if assets
+    //  are not yet ready or the scene state is inconsistent when restarted)
+    this.player = this.physics.add.sprite(worldX, worldY, avatarImageKey)
       .setOrigin(0.5, 0.5)
       .setScale(0.08);
+
+    // Ensure the physics body is present and configured
+    if (this.player.body) {
+      // Prevent player from leaving world bounds
+      if (typeof this.player.body.setCollideWorldBounds === 'function') {
+        this.player.body.setCollideWorldBounds(true);
+      } else if (typeof this.player.setCollideWorldBounds === 'function') {
+        this.player.setCollideWorldBounds(true);
+      }
+    } else {
+      console.warn("Player created but physics body is missing.");
+    }
 
     // Add a glow effect to show it's the player
     this.playerLight = this.lights.addLight(worldX, worldY, 150);
@@ -990,14 +1007,26 @@ export class HomeScene extends Phaser.Scene {
     const delta = this.game.loop.delta / 1000;
     const nextX = this.player.x + velocityX * delta;
     const nextY = this.player.y + velocityY * delta;
+    // Safely set player velocity only if physics body exists.
+    const safeSetVelocity = (vx, vy) => {
+      try {
+        if (this.player && this.player.body && typeof this.player.setVelocity === 'function') {
+          this.player.setVelocity(vx, vy);
+        }
+      } catch (e) {
+        // Defensive: log and avoid throwing during the game loop
+        console.warn("safeSetVelocity failed:", e);
+      }
+    };
+
     if (velocityX !== 0 || velocityY !== 0) {
       if (this.isWalkableAt(nextX, nextY)) {
-        this.player.setVelocity(velocityX, velocityY);
+        safeSetVelocity(velocityX, velocityY);
       } else {
-        this.player.setVelocity(0, 0);
+        safeSetVelocity(0, 0);
       }
     } else {
-      this.player.setVelocity(0, 0);
+      safeSetVelocity(0, 0);
     }
 
     // Keep lock icons positioned and visible only when the player lacks the required item

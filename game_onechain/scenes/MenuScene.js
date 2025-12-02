@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { AvatarUtils } from "../utils/avatarUtils.js";
 import { Transaction } from "@mysten/sui/transactions";
-import { PACKAGE_ID, MODULE_NAME, CHEST_REGISTRY_ID , TREASURY_OBJECT_ID , CLOCK_OBJECT_ID} from "../oneConfig.js";
+import { PACKAGE_ID, MODULE_NAME, CHEST_REGISTRY_ID , REWARD_POOL_OBJECT_ID,CLOCK_OBJECT_ID} from "../oneConfig.js";
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -13,6 +13,7 @@ export class MenuScene extends Phaser.Scene {
     this.chestTimer = null;
     this.chestButton = null;
     this.chestStatusText = null;
+    this.statusText = null; // ADD THIS LINE
 
     // spinner state
     this.spinner = null;
@@ -118,6 +119,20 @@ export class MenuScene extends Phaser.Scene {
     if (this.chestCooldownRemaining > 0) {
       this.startChestCountdown();
     }
+
+    // ADD THIS: Initialize status text (hidden by default)
+    this.statusText = this.add.text(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY + 200,
+      '',
+      {
+        fontFamily: 'Arial',
+        fontSize: '18px',
+        color: '#d4af37',
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        padding: { x: 20, y: 10 }
+      }
+    ).setOrigin(0.5).setDepth(1000).setVisible(false);
   }
 
   async fetchChestStatus() {
@@ -873,53 +888,69 @@ export class MenuScene extends Phaser.Scene {
       return;
     }
 
-    // 1. Show loading feedback
     const loadingText = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY + 150, 'Paying Entry Fee (0.05 OCT)...', {
       fontFamily: 'Arial', fontSize: '24px', color: '#d4af37', backgroundColor: 'rgba(0,0,0,0.8)', padding: { x: 20, y: 10 }
     }).setOrigin(0.5).setDepth(1000);
 
     try {
-      // 2. Prepare Transaction
+      // Show and update status text
+      if (this.statusText) {
+        this.statusText.setVisible(true);
+        this.statusText.setText('Creating transaction...');
+      }
+      
       const tx = new Transaction();
-      const ENTRANCE_FEE = 50000000; // 0.05 OCT (matches contract constant)
-
-      // Split the coin for the fee from gas
+      
+      // 1. Collect entrance fee and add to reward pool
+      const ENTRANCE_FEE = 50000000; // 0.05 OCT
       const [feeCoin] = tx.splitCoins(tx.gas, [tx.pure.u64(ENTRANCE_FEE)]);
-
-      // Call start_game in the contract
+      
       tx.moveCall({
-        target: `${PACKAGE_ID}::${MODULE_NAME}::start_game`,
+        target: `${PACKAGE_ID}::${MODULE_NAME}::start_game_with_fee`,
         arguments: [
-          tx.object(TREASURY_OBJECT_ID),
-          tx.pure.u8(1), // Difficulty: 1 (Easy)
-          feeCoin,       // The split coin object
-          tx.object(CLOCK_OBJECT_ID)
-        ]
+          tx.object(REWARD_POOL_OBJECT_ID),
+          feeCoin,
+          tx.object(CLOCK_OBJECT_ID),
+        ],
       });
 
-      // 3. Execute Transaction
       const result = await window.onechainWallet.signAndExecuteTransaction({
         transaction: tx,
-        options: { showEffects: true }
-      });
+        options: {
+          showEffects: true,
+          showObjectChanges: true
+      }
+    });
+    console.log("FULL transaction result:", JSON.stringify(result, null, 2));
+    
+    loadingText.setText("Payment successful! Starting game...");
+    loadingText.setColor("#4CAF50");
 
-      console.log("Entry fee paid, game started:", result);
-      loadingText.setText("Payment Successful! Entering Village...");
-      
-      // 4. Wait a moment then transition
-      this.time.delayedCall(1000, () => {
-        this.scene.start("HomeScene", {
-          suiClient: this.suiClient,
-          account: this.account,
-          userAvatar: this.userAvatar,
-          gameSessionDigest: result.digest // Pass transaction digest if needed
-        });
+    // Hide status text
+    if (this.statusText) {
+      this.statusText.setVisible(false);
+    }
+
+    // Small delay before transitioning
+    this.time.delayedCall(1000, () => {
+      loadingText.destroy();
+      this.scene.start('HomeScene', {
+        account: this.account,
+        suiClient: this.suiClient,
+        userAvatar: this.userAvatar, 
       });
+    });
 
     } catch (error) {
       console.error("Failed to start game:", error);
       loadingText.setText("Payment Failed or Cancelled.");
       loadingText.setColor("#ff6b6b");
+      
+      // Hide status text
+      if (this.statusText) {
+        this.statusText.setVisible(false);
+      }
+      
       this.time.delayedCall(3000, () => loadingText.destroy());
     }
   }
