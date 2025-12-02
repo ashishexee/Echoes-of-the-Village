@@ -1,6 +1,6 @@
 // Make sure this points to your running backend
 // export const API_BASE_URL = "https://echoes-server-v4mk.onrender.com"; 
-export const API_BASE_URL = "http://127.0.0.1:8000";  // Changed from localhost to 127.0.0.1
+export const API_BASE_URL = "https://echoes-server-v4mk.onrender.com";  // Changed from localhost to 127.0.0.1
 
 let currentGameId = null;
 
