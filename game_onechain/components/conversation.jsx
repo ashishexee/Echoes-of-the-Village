@@ -8,175 +8,231 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 export default function Conversation({ dialogues = [], onComplete }) {
   const [index, setIndex] = useState(0);
   const [displayText, setDisplayText] = useState('');
-  const [isExiting, setIsExiting] = useState(false); // State to control the exit animation
-  
+  const [isExiting, setIsExiting] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
   // Refs to hold interval/timeout IDs and the speech utterance instance
   const typingRef = useRef(null);
   const utterRef = useRef(null);
   const advanceTimeoutRef = useRef(null);
-  
-  // A ref to keep track of the current index to prevent race conditions from delayed TTS events
   const currentIndexRef = useRef(index);
+
   useEffect(() => {
     currentIndexRef.current = index;
   }, [index]);
 
-
-  // A centralized cleanup function to stop all ongoing effects (typing, speech, timeouts)
+  // Cleanup function
   const cleanup = useCallback(() => {
     clearInterval(typingRef.current);
     clearTimeout(advanceTimeoutRef.current);
     if (utterRef.current) {
-      // VERY IMPORTANT: remove the onend listener before cancelling
-      // to prevent it from firing when we manually call .cancel()
-      utterRef.current.onend = null; 
+      utterRef.current.onend = null;
     }
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
   }, []);
 
+  // Handle exit and completion
   useEffect(() => {
     if (isExiting) {
       const timer = setTimeout(() => {
+        if (dontShowAgain) {
+          localStorage.setItem('skipStoryIntro', 'true');
+        }
         if (onComplete) onComplete();
-      }, 800); 
+      }, 800);
       return () => clearTimeout(timer);
     }
-  }, [isExiting, onComplete]);
+  }, [isExiting, onComplete, dontShowAgain]);
 
   const advance = useCallback(() => {
     cleanup();
     if (index + 1 >= dialogues.length) {
-      setIsExiting(true); // Start the exit animation instead of calling onComplete
+      setIsExiting(true);
     } else {
       setIndex((prevIndex) => prevIndex + 1);
     }
   }, [index, dialogues.length, cleanup]);
 
-  // Main effect to handle typing and speech for the current dialogue line
+  // Effect for typing and speech
   useEffect(() => {
-    if (isExiting) return; // Don't run effects if the component is exiting
+    if (isExiting) return;
 
     cleanup();
 
     const line = dialogues[index];
     if (!line) return;
 
-    // --- Typing Effect ---
+    // Typing Effect
     let pos = 0;
-    setDisplayText(''); // Reset display text for the new line
+    setDisplayText('');
     typingRef.current = setInterval(() => {
       pos++;
       setDisplayText(line.text.slice(0, pos));
       if (pos >= line.text.length) {
         clearInterval(typingRef.current);
       }
-    }, 50);
+    }, 80); // Slightly faster typing
 
-    // --- Text-to-Speech (TTS) Effect ---
-    const handleSpeechEnd = () => {
-        if (currentIndexRef.current === index) {
-            advance();
-        }
+    // Text-to-Speech handlers
+    const handleSpeechSuccess = () => {
+      if (currentIndexRef.current === index) {
+        // Speech finished normally, wait a bit then advance
+        advanceTimeoutRef.current = setTimeout(() => {
+          advance();
+        }, 800);
+      }
     };
-    
+
+    const handleSpeechError = (e) => {
+      console.warn("TTS Error:", e);
+      if (currentIndexRef.current === index) {
+        // Speech failed (e.g. prevented by browser or no voice), fallback to reading timer
+        const estimatedTime = Math.max(3000, line.text.length * 50);
+        advanceTimeoutRef.current = setTimeout(() => {
+          advance();
+        }, estimatedTime);
+      }
+    };
+
     if ('speechSynthesis' in window && line.text) {
+      window.speechSynthesis.cancel();
+
       const utter = new SpeechSynthesisUtterance(line.text);
       utter.lang = 'en-US';
-      utter.volume = 1;
-      utter.rate = 1;
-      utter.pitch = 1;
-      utter.onend = handleSpeechEnd;
-      utter.onerror = (event) => {
-        console.error('SpeechSynthesisUtterance.onerror', event);
-        handleSpeechEnd(); // Treat error as the end to avoid getting stuck
-      };
-      
+      utter.volume = 0.8;
+      utter.rate = 1.1;
+      utter.onend = handleSpeechSuccess;
+      utter.onerror = handleSpeechError;
+
       utterRef.current = utter;
       window.speechSynthesis.speak(utter);
     } else {
       // Fallback auto-advance if TTS is not available
-      const estimatedTime = Math.max(2000, line.text.length * 50);
-      advanceTimeoutRef.current = setTimeout(handleSpeechEnd, estimatedTime);
+      const estimatedTime = Math.max(3000, line.text.length * 50);
+      advanceTimeoutRef.current = setTimeout(() => {
+        advance();
+      }, estimatedTime);
     }
 
-    // Return the cleanup function to run when the component unmounts or the index changes
     return cleanup;
   }, [index, dialogues, cleanup, advance, isExiting]);
 
   const skip = () => {
     cleanup();
-    setIsExiting(true); // Trigger exit animation on skip
+    setIsExiting(true);
   };
 
   const currentLine = dialogues[index];
   if (!currentLine) return null;
 
-  // Determine speaker positions. We'll assume a two-person conversation.
+  // Speaker logic
   const speakers = [...new Set(dialogues.map(d => d.speaker))];
   const leftSpeakerName = speakers[0];
-  const rightSpeakerName = speakers[1] || speakers[0];
+  const rightSpeakerName = speakers[1] || 'Friend';
 
   const isLeftSpeakerActive = currentLine.speaker === leftSpeakerName;
 
-  // Find the full dialogue object for each speaker to get their portrait
-  const leftSpeakerInfo = dialogues.find(d => d.speaker === leftSpeakerName);
-  const rightSpeakerInfo = dialogues.find(d => d.speaker === rightSpeakerName);
-
   return (
-    // The main container will now fade out
-    <div className={`w-full h-[70vh] min-h-[400px] bg-black/60 bg-opacity-40 relative flex flex-col justify-end items-center p-4 overflow-hidden transition-opacity duration-700 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
-      {/* Character Portraits */}
-      <div className="absolute bottom-0 w-full max-w-7xl mx-auto h-full flex justify-between items-end">
+    <div className={`fixed inset-0 z-50 flex flex-col justify-end items-center transition-opacity duration-700 ${isExiting ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+
+      {/* Background Dim - allows seeing the game/menu behind faintly if desired, or solid black */}
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+
+      {/* Character Portraits Container */}
+      <div className="absolute bottom-0 w-full max-w-7xl mx-auto h-full flex justify-between items-end pointer-events-none">
         {/* Left Character */}
-        <div 
-          className={`transition-all duration-700 ease-in-out ${isLeftSpeakerActive ? 'opacity-100 scale-100' : 'opacity-60 scale-90'} ${isExiting ? 'translate-y-24' : 'translate-y-0'}`}
+        <div
+          className={`transition-all duration-500 ease-out transform ${isLeftSpeakerActive ? 'opacity-100 scale-100 translate-x-0 grayscale-0' : 'opacity-40 scale-90 -translate-x-12 grayscale'
+            } ${isExiting ? 'translate-y-24 opacity-0' : 'translate-y-0'}`}
         >
           <img
-            src= '/assets/images/characters/villager03.png'
+            src='/assets/images/characters/villager03.png'
             alt={leftSpeakerName}
-            className="h-[45vh] max-h-[350px] object-contain"
+            className="h-[50vh] max-h-[500px] object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]"
           />
         </div>
+
         {/* Right Character */}
-        <div 
-          className={`transition-all duration-700 ease-in-out ${!isLeftSpeakerActive ? 'opacity-100 scale-100' : 'opacity-60 scale-90'} ${isExiting ? 'translate-y-24' : 'translate-y-0'}`}
+        <div
+          className={`transition-all duration-500 ease-out transform ${!isLeftSpeakerActive ? 'opacity-100 scale-100 translate-x-0 grayscale-0' : 'opacity-40 scale-90 translate-x-12 grayscale'
+            } ${isExiting ? 'translate-y-24 opacity-0' : 'translate-y-0'}`}
         >
           <img
-            src= '/assets/images/characters/villager04.png'
+            src='/assets/images/characters/villager04.png'
             alt={rightSpeakerName}
-            className="h-[45vh] max-h-[350px] object-contain"
+            className="h-[50vh] max-h-[500px] object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]"
           />
         </div>
       </div>
-      
-      {/* Dialogue Box and Controls Wrapper */}
-      <div className={`relative z-10 w-full max-w-4xl transition-all duration-500 ${isExiting ? 'translate-y-16' : 'translate-y-0'}`}>
-        {/* Dialogue Box */}
-        <div className="bg-gray-900/90 backdrop-blur-sm text-white p-4 rounded-lg shadow-2xl border border-gray-600">
-          <div 
-            className={`text-lg font-bold mb-2 ${isLeftSpeakerActive ? 'text-yellow-400' : 'text-sky-400'}`}
-          >
-            {currentLine.speaker}
+
+      {/* Dialogue Interface */}
+      <div className={`relative z-20 w-full max-w-4xl mb-12 flex flex-col items-center transition-transform duration-500 ${isExiting ? 'translate-y-20' : 'translate-y-0'}`}>
+
+        {/* Main Dialogue Box */}
+        <div className="w-full bg-[#1a1a2e]/95 border-2 border-[#d4af37] rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.6)] p-6 min-h-[160px] relative overflow-hidden backdrop-blur-md">
+
+          {/* Decorative Corner Elements */}
+          <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-[#d4af37]"></div>
+          <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-[#d4af37]"></div>
+          <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-[#d4af37]"></div>
+          <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[#d4af37]"></div>
+
+          {/* Speaker Name Label */}
+          <div className="absolute -top-4 left-8">
+            <div className={`px-6 py-1 rounded-full border border-[#d4af37] text-sm font-bold tracking-widest uppercase shadow-lg ${isLeftSpeakerActive ? 'bg-[#d4af37] text-[#1a1a2e]' : 'bg-[#2c2c54] text-[#d4af37]'
+              }`}>
+              {currentLine.speaker}
+            </div>
           </div>
-          <div className="text-xl leading-relaxed min-h-[5rem]">{displayText}</div>
+
+          {/* Text Content */}
+          <p className="mt-4 text-xl md:text-2xl text-gray-100 leading-relaxed font-serif tracking-wide drop-shadow-md">
+            {displayText}
+            <span className="animate-pulse ml-1 text-[#d4af37]">|</span>
+          </p>
         </div>
 
-        {/* Controls */}
-        <div className="flex justify-center items-center gap-4 mt-4">
+        {/* Controls Row */}
+        <div className="w-full flex flex-col md:flex-row justify-between items-center mt-6 px-4 gap-4">
+
+          {/* Don't Show Again Checkbox */}
           <button
-            onClick={advance}
-            className="px-8 py-3 bg-teal-400 text-teal-900 font-bold rounded-full transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-teal-400/50"
+            onClick={() => setDontShowAgain(!dontShowAgain)}
+            className="group flex items-center space-x-3 text-[#cccccc] hover:text-white transition-colors"
           >
-            Next
+            <div className={`w-6 h-6 border-2 rounded flex items-center justify-center transition-all ${dontShowAgain ? 'bg-[#d4af37] border-[#d4af37] text-[#1a1a2e]' : 'border-gray-500 group-hover:border-[#d4af37]'
+              }`}>
+              {dontShowAgain && (
+                <svg className="w-4 h-4 font-bold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <span className="text-sm font-medium tracking-wide">Don't show this intro again</span>
           </button>
-          <button
-            onClick={skip}
-            className="px-8 py-3 bg-gray-700 text-teal-200 font-bold rounded-full transition-all duration-300 hover:scale-105 hover:bg-gray-600 hover:shadow-2xl hover:shadow-black/50"
-          >
-            Skip
-          </button>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={skip}
+              className="px-6 py-2 text-gray-400 hover:text-white font-medium hover:underline tracking-wider transition-colors"
+            >
+              Skip All
+            </button>
+            <button
+              onClick={advance}
+              className="px-10 py-3 bg-[#d4af37] text-[#1a1a2e] text-lg font-bold rounded-lg 
+                         hover:bg-[#ffe74a] transform hover:scale-105 transition-all duration-200 
+                         shadow-[0_0_15px_rgba(212,175,55,0.4)] flex items-center gap-2"
+            >
+              <span>{index + 1 >= dialogues.length ? "Begin Journey" : "Next"}</span>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
